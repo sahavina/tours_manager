@@ -1,0 +1,28 @@
+.page-title { margin: 0 0 16px; font-size: 20px; font-weight: 600; }
+.page-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.page-head .page-title { margin: 0; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.kpi-card { cursor: pointer; transition: box-shadow .15s; }
+.kpi-card:hover { box-shadow: 0 2px 10px rgba(15, 23, 42, .12); }
+.kpi-value { font-size: 26px; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.kpi-label { color: #64748b; font-size: 13px; margin-top: 4px; }
+.num { font-variant-numeric: tabular-nums; text-align: right; }
+.mono { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+.muted { color: #64748b; }
+.nowrap { white-space: nowrap; }
+.mock-banner { background: #fff7e6; border: 1px solid #ffd591; color: #ad6800; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; }
+.cal-cell { font-size: 12px; line-height: 1.5; }
+.cal-chip { display: block; border-radius: 4px; padding: 0 4px; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-chip.ok { background: #e6fffb; color: #006d75; }
+.cal-chip.warn { background: #fff7e6; color: #ad6800; }
+.cal-chip.full { background: #fff1f0; color: #a8071a; }
+.guide-shell { max-width: 640px; margin: 0 auto; padding: 12px; }
+.guide-card { margin-bottom: 12px; }
+.pax-row { border-bottom: 1px solid #f0f0f0; padding: 12px 0; }
+.pax-row.inactive { opacity: .6; }
+pre.payload { background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 6px; overflow: auto; max-height: 480px; font-size: 12px; }
+.sim-log { max-height: 360px; overflow: auto; }
+@media (max-width: 640px) {
+  .ant-layout-content { padding: 12px !important; }
+}

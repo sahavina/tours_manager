@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - packages/*
+  # Giống keodansaha: `apps/*` là thứ deploy bằng wrangler, `services/*` là tiến trình Node/Docker
+  # chạy ngoài Cloudflare (ở đây là worker tác vụ nền).
+  - services/*
+allowBuilds:
+  '@embedded-postgres/windows-x64': true
+  esbuild: true
+  supabase: true
+  workerd: true

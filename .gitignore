@@ -1,0 +1,29 @@
+node_modules/
+dist/
+.turbo/
+.wrangler/
+coverage/
+*.log
+
+# Bí mật và cấu hình máy: chỉ .env.example được đưa vào Git
+.env
+.env.*
+!.env.example
+.dev.vars
+
+.pgdata-test/
+.tools/
+.vite.log
+
+# Supabase CLI
+supabase/.temp/
+supabase/.branches/
+
+# Kết quả Playwright
+playwright-report/
+test-results/
+.supabase-start.log
+.pgdata-test.log
+.dev-stack.log
+.worker.log
+.vite.log

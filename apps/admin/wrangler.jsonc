@@ -1,0 +1,6 @@
+{
+  // Giống apps/admin của keodansaha: SPA thuần, Worker chỉ phục vụ file tĩnh.
+  "name": "saha-tour-hub-admin",
+  "compatibility_date": "2026-10-01",
+  "assets": { "directory": "./dist", "not_found_handling": "single-page-application" }
+}

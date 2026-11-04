@@ -1,0 +1,23 @@
+# PostgreSQL, Auth và PostgREST chạy bằng `pnpm db:start` (Supabase CLI, tự quản lý container của nó).
+# File này chạy phần còn lại trong container: worker và bản build tĩnh của app quản trị.
+#
+#   pnpm db:start
+#   docker compose up --build
+services:
+  worker:
+    build:
+      context: .
+      dockerfile: services/tour-worker/Dockerfile
+    environment:
+      WORKER_DATABASE_URL: ${WORKER_DATABASE_URL:-postgresql://postgres:postgres@host.docker.internal:55422/postgres}
+      WORKER_HEALTH_PORT: 3102
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - '3102:3102'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3102/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
