@@ -4,7 +4,9 @@ WORKDIR /app
 RUN corepack enable
 COPY pnpm-workspace.yaml package.json ./
 COPY services/tour-worker/package.json services/tour-worker/
-RUN pnpm install --filter @tours/worker --prod --no-frozen-lockfile
+COPY packages/channels/package.json packages/channels/
+COPY packages/channels/src packages/channels/src
+RUN pnpm install --filter @tours/worker... --prod --no-frozen-lockfile
 COPY services/tour-worker/src services/tour-worker/src
 WORKDIR /app/services/tour-worker
 USER node

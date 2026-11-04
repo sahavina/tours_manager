@@ -161,8 +161,8 @@ for (const [name, plate, seats, driver, phone] of [
 }
 
 // ---- Kết nối mô phỏng ----
-const CAPS = { receive_booking: 'supported', receive_cancellation: 'supported', receive_amendment: 'supported', provide_availability: 'supported', hold: 'supported', confirm_booking: 'supported', update_price: 'unsupported', recovery_query: 'unsupported', amend_from_system: 'unsupported' }
-const [{ id: viator }] = await q(`insert into public.channel_connections (organization_id, channel, account_name, capabilities, hold_ttl_seconds, supplier_account_ref) values ($1, 'viator', 'Viator tài khoản chính', $2, 900, 'SIM-V-1') returning id`, [org, JSON.stringify(CAPS)])
+const CAPS = { catalog_pull: 'supported', availability_pull: 'supported', receive_booking: 'supported', receive_cancellation: 'supported', receive_amendment: 'supported', provide_availability: 'supported', hold: 'supported', confirm_booking: 'supported', update_price: 'unsupported', recovery_query: 'unsupported', amend_from_system: 'unsupported' }
+const [{ id: viator }] = await q(`insert into public.channel_connections (organization_id, channel, account_name, capabilities, hold_ttl_seconds, supplier_account_ref, catalog_sync_enabled, catalog_sync_interval_minutes) values ($1, 'viator', 'Viator tài khoản chính', $2, 900, 'SIM-V-1', true, 60) returning id`, [org, JSON.stringify(CAPS)])
 const [{ id: gyg }] = await q(`insert into public.channel_connections (organization_id, channel, account_name, capabilities, hold_ttl_seconds, supplier_account_ref) values ($1, 'getyourguide', 'GetYourGuide tài khoản chính', $2, 3600, 'SIM-G-1') returning id`, [org, JSON.stringify(CAPS)])
 await q(`insert into public.channel_connections (organization_id, channel, account_name, mode, status, approval_status, capabilities) values ($1, 'manual', 'Nhập từ file', 'production', 'connected', 'not_required', '{}')`, [org])
 

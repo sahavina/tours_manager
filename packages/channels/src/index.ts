@@ -15,6 +15,8 @@ export type Capability =
   | 'update_price'
   | 'recovery_query'
   | 'amend_from_system'
+  | 'catalog_pull'
+  | 'availability_pull'
 
 export type CapabilityState = 'supported' | 'unsupported' | 'unverified'
 export type CapabilityMap = Record<Capability, CapabilityState>
@@ -87,7 +89,18 @@ const SIMULATED_CAPABILITIES: CapabilityMap = {
   update_price: 'unsupported',
   recovery_query: 'unsupported',
   amend_from_system: 'unsupported',
+  catalog_pull: 'supported',
+  availability_pull: 'supported',
 }
+
+/**
+ * Điều tài liệu Supplier API của Viator nêu cho hai khả năng đồng bộ, đọc 2026-11-04. Bộ mô phỏng làm được
+ * nhiều hơn thế để thử giao diện; đừng đọc khả năng của bộ mô phỏng thành khả năng của Viator.
+ *   catalog_pull: có `post/v2/mappings/catalog` nhưng là Beta, chỉ nêu mã, tên, trạng thái, mapping; và chỉ
+ *     cho nhà cung cấp một supplier code.
+ *   availability_pull: không thấy nêu. Chiều thật là Viator gọi hệ thống của nhà cung cấp để hỏi chỗ.
+ */
+export const VIATOR_DECLARED = { catalog_pull: 'unverified', availability_pull: 'unsupported' } as const satisfies Partial<CapabilityMap>
 
 export const VIATOR_MOCK: ChannelDescriptor = {
   channel: 'viator',
@@ -191,6 +204,71 @@ export const simulate = {
       data: simulatedBooking(ctx, ref, pax),
     }
   },
+}
+
+/** Sản phẩm kênh đã chuẩn hóa. Chỉ `product_code` là chắc chắn có: kênh thật có thể không gửi các trường còn lại. */
+export type ChannelProduct = {
+  product_code: string
+  option_code?: string
+  title?: string
+  status?: string
+  description?: string
+  destination?: string
+  duration_minutes?: number
+  timezone?: string
+  language?: string
+  start_times?: string[]
+  traveler_categories?: string[]
+}
+
+export type ChannelAvailability = {
+  product_code: string
+  option_code?: string
+  local_date: string
+  local_time: string
+  vacancies: number
+  status: 'available' | 'sold_out' | 'closed'
+}
+
+/**
+ * Danh mục giả, tái tạo được. Phiên bản chẵn giả lập việc kênh đổi nội dung, thêm một sản phẩm và gỡ một sản
+ * phẩm, để thử luồng duyệt thay đổi.
+ */
+export function mockCatalog(channel: 'viator' | 'getyourguide', version: number): ChannelProduct[] {
+  const p = channel === 'viator' ? 'SIMV' : 'SIMG'
+  const changed = version % 2 === 0
+  const base: ChannelProduct[] = [
+    { product_code: `${p}-1001`, title: changed ? 'Cruise Ha Long Bay, full day (đã đổi tên)' : 'Cruise Ha Long Bay, full day', description: changed ? 'Mô phỏng: mô tả đã được sửa trên kênh.' : 'Mô phỏng: du thuyền Hạ Long một ngày.', destination: 'Quảng Ninh', duration_minutes: 720, language: 'en', start_times: ['08:00'], traveler_categories: ['ADULT', 'CHILD'], status: 'ACTIVE' },
+    { product_code: `${p}-1002`, title: 'Hanoi street food walk', description: 'Mô phỏng: đi bộ ăn phố cổ.', destination: 'Hà Nội', duration_minutes: 210, language: 'en', start_times: ['17:30'], traveler_categories: ['ADULT'], status: 'ACTIVE' },
+    // Đúng phần tài liệu Viator nêu: chỉ mã, tên, trạng thái.
+    { product_code: `${p}-1003`, title: 'Ninh Binh day trip', status: 'ACTIVE' },
+  ]
+  return changed
+    ? [...base, { product_code: `${p}-1005`, title: 'Sa Pa two days', destination: 'Lào Cai', duration_minutes: 2880, language: 'en', start_times: ['06:30'], status: 'ACTIVE' }]
+    : [...base, { product_code: `${p}-1004`, title: 'Hoi An lantern evening', destination: 'Quảng Nam', duration_minutes: 240, language: 'en', start_times: ['16:00'], status: 'ACTIVE' }]
+}
+
+/** Lịch giả theo ngày bắt đầu truyền vào. Sản phẩm không khai giờ thì không có lịch. */
+export function mockAvailability(products: ChannelProduct[], from: Date, days = 14): ChannelAvailability[] {
+  const out: ChannelAvailability[] = []
+  for (const p of products) {
+    const seed = [...p.product_code].reduce((s, c) => s + c.charCodeAt(0), 0)
+    for (const time of p.start_times ?? []) {
+      for (let i = 0; i < days; i += 1) {
+        const d = new Date(from.getTime() + i * 86400000)
+        const vacancies = (seed + i * 3) % 12
+        out.push({
+          product_code: p.product_code,
+          option_code: p.option_code,
+          local_date: d.toISOString().slice(0, 10),
+          local_time: time,
+          vacancies,
+          status: vacancies === 0 ? 'sold_out' : 'available',
+        })
+      }
+    }
+  }
+  return out
 }
 
 export const SIMULATION_SCENARIOS = [

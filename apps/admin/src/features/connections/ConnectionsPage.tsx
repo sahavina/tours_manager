@@ -7,6 +7,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
 import { Can, ConnectionBadge, ErrorState, EventStatusTag, fmtDateTime, NoData, PageHead } from '../../components/common'
 import { CONNECTION_COLUMNS, friendlyError, rpcOk, supabase, unwrap, type Row } from '../../lib/supabase'
+import { CatalogTab } from './CatalogTab'
 import { Simulator } from './Simulator'
 
 function useConnections() {
@@ -263,6 +264,7 @@ export function ConnectionsPage() {
       <Card>
         <Tabs activeKey={tab} onChange={(k) => setParams(k === 'connections' ? {} : { tab: k }, { replace: true })} items={[
           { key: 'connections', label: 'Tài khoản kênh', children: <ConnectionsTab /> },
+          { key: 'catalog', label: 'Sản phẩm kênh', children: <CatalogTab /> },
           { key: 'mappings', label: 'Ghép mã sản phẩm', children: <MappingsTab /> },
           { key: 'events', label: 'Nhật ký đồng bộ', children: <EventsTab /> },
           ...(can('connection.simulate') ? [{ key: 'simulator', label: 'Bộ mô phỏng', children: <Simulator /> }] : []),

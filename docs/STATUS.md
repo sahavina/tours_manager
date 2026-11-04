@@ -50,6 +50,12 @@ Ma trận quyền của cả 7 vai trò kiểm tra qua HTTP: đúng đặc tả 
 | `pnpm test` ở thư mục gốc không chạy | Tưởng đã test mà không |
 | Seed lần hai lỗi | Không tái tạo được dữ liệu |
 
+### Đồng bộ danh mục kênh (mô phỏng)
+
+Test trên Postgres thật: nhận danh mục lặp không trùng, đổi nội dung không ghi đè tour (gỡ chốt thì test đỏ), duyệt từng trường, mã trùng không để lại tour mồ côi, ảnh chụp lịch không đổi sức chứa, phân quyền và tách doanh nghiệp, người dùng không đẩy được danh mục vào kết nối thật. Worker tự đồng bộ theo chu kỳ.
+
+Trên trình duyệt đã thử: xem danh sách, xem lịch, tạo tour từ sản phẩm, giả lập kênh đổi danh mục, mở màn duyệt thay đổi. Chưa bấm trên giao diện: áp dụng thay đổi, ghép, bỏ qua, tạo chuyến từ lịch (đã có test ở tầng RPC).
+
 ## Chưa kiểm chứng
 
 | Hạng mục | Vì sao |
@@ -66,6 +72,7 @@ Ma trận quyền của cả 7 vai trò kiểm tra qua HTTP: đúng đặc tả 
 ## Chưa làm
 
 - **Kết nối thật với Viator, GetYourGuide**: chỉ có connector mô phỏng. Xem [CHANNEL_INTEGRATION.md](CHANNEL_INTEGRATION.md).
+- **Đồng bộ tour từ Viator chưa lấy được dữ liệu thật**: màn Sản phẩm kênh và worker chạy trên dữ liệu `SIM`. Chưa xác định tài khoản có quyền API gì. Theo tài liệu, Supplier API không có đường kéo số chỗ về.
 - Cổng HTTP nhận yêu cầu từ kênh, nên chưa có rate limit và xác minh khóa cho chiều đó.
 - Chưa quy đổi tiền tệ: mỗi tiền tệ tính riêng, nên không có bảng tỷ giá.
 - XLSX: chỉ có CSV. Nhập file chỉ có loại booking.

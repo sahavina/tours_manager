@@ -48,4 +48,4 @@ export function unwrap<T>(res: { data: T | null; error: { code?: string; message
 }
 
 export const CONNECTION_COLUMNS =
-  'id, organization_id, channel, account_name, supplier_account_ref, mode, status, approval_status, capabilities, hold_ttl_seconds, has_credentials, last_success_at, last_simulated_at, last_error, last_error_at, stale_after_minutes'
+  'id, organization_id, channel, account_name, supplier_account_ref, mode, status, approval_status, capabilities, hold_ttl_seconds, has_credentials, last_success_at, last_simulated_at, last_error, last_error_at, stale_after_minutes, catalog_sync_enabled, catalog_sync_interval_minutes, catalog_last_attempt_at, catalog_last_synced_at, catalog_last_error, mock_catalog_version'

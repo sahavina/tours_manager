@@ -43,6 +43,7 @@ export const CAPABILITIES: Record<string, string> = {
   receive_booking: 'Nhận booking', receive_cancellation: 'Nhận hủy', receive_amendment: 'Nhận thay đổi',
   provide_availability: 'Cung cấp tình trạng chỗ', hold: 'Giữ chỗ', confirm_booking: 'Xác nhận đặt',
   update_price: 'Cập nhật giá', recovery_query: 'Truy vấn phục hồi', amend_from_system: 'Sửa/hủy từ hệ thống',
+  catalog_pull: 'Lấy danh mục sản phẩm', availability_pull: 'Lấy lịch và số chỗ',
 }
 
 const PAX_LABEL: Record<string, string> = { adult: 'Người lớn', child: 'Trẻ em', infant: 'Em bé', youth: 'Thanh thiếu niên', senior: 'Người cao tuổi' }
@@ -88,6 +89,12 @@ const RESULT_CODES: Record<string, string> = {
   job_not_found: 'Không tìm thấy lượt nhập.',
   batch_not_found: 'Không tìm thấy bảng thanh toán.',
   forbidden: 'Bạn không có quyền thực hiện thao tác này.',
+  duplicate_code: 'Mã này đã tồn tại, hãy chọn mã khác.',
+  already_linked: 'Sản phẩm này đã được ghép với một gói.',
+  option_not_found: 'Không tìm thấy gói dịch vụ.',
+  tour_not_found: 'Không tìm thấy tour.',
+  product_not_linked: 'Sản phẩm chưa được ghép với gói nội bộ.',
+  not_mock: 'Thao tác này chỉ dùng cho kết nối mô phỏng.',
   stale_ignored: 'Sự kiện cũ hơn dữ liệu hiện có nên được bỏ qua.',
 }
 

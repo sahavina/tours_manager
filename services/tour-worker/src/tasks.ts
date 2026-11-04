@@ -1,6 +1,7 @@
 // Các tác vụ nền. Hàng đợi nằm trong PostgreSQL (FOR UPDATE SKIP LOCKED), không cần Redis. Giới hạn:
 // thăm dò theo chu kỳ nên độ trễ bằng chu kỳ thăm dò, và lưu lượng rất lớn sẽ đè lên database. Đổi sang
 // Redis/BullMQ khi cần: chỉ thay file này, các RPC worker_* không đổi.
+import { mockAvailability, mockCatalog } from '@tours/channels'
 import type { Pool, PoolClient } from 'pg'
 
 export type Log = (level: 'info' | 'warn' | 'error', msg: string, extra?: Record<string, unknown>) => void
@@ -65,6 +66,33 @@ export async function drainOutbox(pool: Pool, log: Log, limit = 50): Promise<num
     }
   }
   return rows.length
+}
+
+/**
+ * Đồng bộ danh mục cho kết nối đến hạn. Chỉ kết nối mô phỏng có nguồn dữ liệu. Kết nối thật được ghi lỗi
+ * rõ ràng thay vì báo đã đồng bộ: chưa có connector, và lịch thì Supplier API của Viator không cho kéo về.
+ */
+export async function syncCatalogs(pool: Pool, log: Log): Promise<number> {
+  const { rows } = await pool.query<{ id: string; channel: string; mode: string; mock_catalog_version: number }>(
+    'select * from public.worker_catalog_due()',
+  )
+  let done = 0
+  for (const c of rows) {
+    if (c.mode !== 'mock' || (c.channel !== 'viator' && c.channel !== 'getyourguide')) {
+      await pool.query('select public.worker_catalog_failed($1, $2, $3)', [c.id, 'needs_connector', 'Chưa có connector thật cho kết nối này'])
+      log('warn', 'bỏ qua đồng bộ danh mục: chưa có connector', { connection_id: c.id })
+      continue
+    }
+    const products = mockCatalog(c.channel, c.mock_catalog_version)
+    await inTx(pool, async (tx) => {
+      // RPC chỉ nhận chiều kênh từ service_role, giống cổng thật sau này.
+      await tx.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ role: 'service_role' })])
+      await tx.query('select public.channel_catalog_ingest($1, $2, true)', [c.id, JSON.stringify(products)])
+      await tx.query('select public.channel_availability_ingest($1, $2)', [c.id, JSON.stringify(mockAvailability(products, new Date()))])
+    })
+    done += 1
+  }
+  return done
 }
 
 export async function markStale(pool: Pool): Promise<number> {

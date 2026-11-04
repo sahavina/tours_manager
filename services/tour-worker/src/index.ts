@@ -1,7 +1,7 @@
 // Worker nền của SAHA Tour Hub. Chạy một hoặc nhiều bản: SKIP LOCKED giữ cho chúng không xử lý trùng.
 import { createServer } from 'node:http'
 import pg from 'pg'
-import { drainOutbox, expireHolds, markStale, purgePayloads, retryEvents, type Log } from './tasks.ts'
+import { drainOutbox, expireHolds, markStale, purgePayloads, retryEvents, syncCatalogs, type Log } from './tasks.ts'
 
 const connectionString = process.env.WORKER_DATABASE_URL
 if (!connectionString) {
@@ -30,6 +30,7 @@ const tasks: Task[] = [
   { name: 'expire_holds', everyMs: 15_000, run: () => expireHolds(pool), nextAt: 0 },
   { name: 'retry_events', everyMs: 15_000, run: () => retryEvents(pool), nextAt: 0 },
   { name: 'mark_stale', everyMs: 60_000, run: () => markStale(pool), nextAt: 0 },
+  { name: 'catalog_sync', everyMs: 60_000, run: () => syncCatalogs(pool, log), nextAt: 0 },
   { name: 'purge_payloads', everyMs: 6 * 60 * 60_000, run: () => purgePayloads(pool), nextAt: 0 },
 ]
 

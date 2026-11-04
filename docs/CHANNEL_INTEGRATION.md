@@ -49,6 +49,47 @@ Hệ quả cho thiết kế:
 - Không nêu thứ tự sự kiện, nên chiến lược là dùng phiên bản hoặc thời điểm nếu có, và gắn cờ `ordering_verified = false` để đối chiếu nếu không.
 - GetYourGuide báo lỗi nghiệp vụ bằng HTTP 200 kèm `errorCode`: cổng phải trả đúng khuôn đó.
 
+## Đồng bộ tour từ Viator
+
+**Hiện chỉ chạy trên dữ liệu mô phỏng.** Mã sản phẩm có tiền tố `SIM`, không lấy từ tài khoản Viator nào.
+
+Màn hình: **Kết nối kênh > Sản phẩm kênh**.
+
+| Việc | Cách hoạt động |
+|---|---|
+| Lấy danh mục | Đưa vào bảng `channel_products`, không ghi vào `tours` hay `tour_options` |
+| Tạo tour và gói | Người dùng bấm từng sản phẩm, đồng thời tạo ánh xạ đã kiểm tra |
+| Ghép với tour có sẵn | Người dùng chọn gói; booking đang chờ của mã đó tự xếp chuyến |
+| Khi kênh đổi nội dung | Giữ bản nội bộ, gắn cờ "Có thay đổi", người dùng duyệt từng trường |
+| Sản phẩm biến mất khỏi kênh | Đánh dấu "Đã gỡ", không xóa gì ở nội bộ |
+| Lịch và số chỗ | Lưu ảnh chụp để đối chiếu, tạo chuyến thiếu khi người dùng nhập sức chứa. Không đổi `inventory_pools` |
+| Cập nhật định kỳ | Worker chạy theo chu kỳ của từng kết nối. Kết nối thật hiện ghi lỗi `needs_connector`, không báo đã đồng bộ |
+
+### Viator cho phép gì theo tài liệu
+
+Đọc ngày 2026-11-04 tại trang Supplier API. Một phần lấy từ bản tóm tắt, cần đọc lại khi triển khai.
+
+| Nhu cầu | Thực tế | Hệ quả |
+|---|---|---|
+| Kéo danh mục | `post/v2/mappings/catalog`, do Viator host, xác thực `X-Api-Key`. **Beta**, có thể đổi. Trả `productCode`, `productName`, `productStatus`, `mappings`. Giới hạn 300 request mỗi 60 giây, 15 mỗi giây. Chỉ cho nhà cung cấp một supplier code, nếu không trả `MULTIPLE_SUPPLIER_CODES` | Làm được nhưng không có mô tả, thời lượng, múi giờ, ngôn ngữ. Vì vậy mọi trường ngoài mã, tên, trạng thái đều được phép trống |
+| Khai danh mục cho Viator | `post/tourlist` (v1): Viator gọi vào hệ thống của bạn | Chiều ngược lại, không dùng để lấy dữ liệu |
+| Kéo lịch và số chỗ | **Không thấy nêu.** Viator gọi `post/v2/availability/check`, `calendar` vào hệ thống của bạn; bạn đẩy `post/v2/notification/events` | Khi kết nối thật, SAHA Tour Hub là nguồn số chỗ, không phải bên nhận. Ảnh chụp lịch hiện chỉ có ở bộ mô phỏng |
+| Partner API (`/products/...`) | Trang tài liệu không đọc được. Merchant và Affiliate là chương trình cho đối tác phân phối | Chưa xác minh. Không giả định nhà tổ chức tour dùng được, hay nó trả booking của bạn |
+
+### Cần xác định về tài khoản
+
+Hiện chưa rõ tài khoản đang có quyền gì. Cách kiểm tra:
+
+1. Đăng nhập trang supplier của Viator, tìm mục kết nối hoặc API, ghi lại **supplierId** nếu có.
+2. Gửi supplierAPI@viator.com các câu hỏi dưới đây.
+
+Câu hỏi nên gửi:
+
+- Tài khoản supplier của chúng tôi có được dùng Supplier API trực tiếp không, hay phải qua reservation system đã được chứng nhận?
+- `post/v2/mappings/catalog` có mở cho chúng tôi không, tài khoản có một hay nhiều supplier code?
+- Có API nào trả mô tả, thời lượng, ngôn ngữ, giờ chạy của sản phẩm cho chính nhà cung cấp không?
+- Có cách nào lấy booking lịch sử không, hay phải xuất file?
+
 ## Các bước để kết nối thật
 
 1. **Đăng ký**: Viator tại https://supplier.viator.com/sign-up-info, liên hệ SupplierAPI@viator.com. GetYourGuide liên hệ theo trang integrator. Cần doanh nghiệp đứng tên.

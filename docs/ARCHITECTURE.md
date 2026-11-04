@@ -112,6 +112,7 @@ Khác tên so với đặc tả: `users` là `profiles` (gắn `auth.users`); `r
 | outbox | 5 giây | Sinh thông báo, ghi việc đẩy tình trạng chỗ |
 | expire_holds | 15 giây | Đổi hold quá hạn thành `expired` |
 | retry_events | 15 giây | Chạy lại sự kiện `failed` đến hạn |
+| catalog_sync | 1 phút | Đồng bộ danh mục cho kết nối đến hạn theo chu kỳ riêng. Kết nối thật chưa có connector: ghi lỗi |
 | mark_stale | 1 phút | Kết nối thật lâu không liên lạc: booking thành "có thể đã cũ" |
 | purge_payloads | 6 giờ | Xóa payload quá hạn lưu giữ |
 

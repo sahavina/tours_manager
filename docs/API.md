@@ -113,6 +113,24 @@ Từ người dùng chỉ gọi được trên kết nối `mock`, cần `connec
 | `retry_event(p_event)` | `connection.manage` | `not_retryable` |
 | `connection_mark_health` | Chỉ `service_role` | |
 
+### Danh mục kênh
+
+Bảng đọc: `channel_products`, `channel_availability_snapshots` (`connection.read`).
+
+Hai hàm `*_ingest` và `channel_mock_bump_catalog` theo cùng luật với mục Kênh: từ người dùng chỉ gọi được trên kết nối mock.
+
+| Hàm | Quyền | Ghi chú |
+|---|---|---|
+| `channel_catalog_ingest(p_connection, p_products, p_complete)` | Như mục Kênh | Chỉ `product_code` bắt buộc. `p_complete = true` mới đánh dấu đã gỡ. Trả `created`, `changed`, `unchanged`, `removed`, `invalid` |
+| `channel_availability_ingest(p_connection, p_items)` | Như mục Kênh | Không đổi sức chứa nội bộ. Trả `saved`, `skipped` |
+| `channel_mock_bump_catalog(p_connection)` | Như mục Kênh | Mã `not_mock` |
+| `channel_catalog_create_internal(p_product, p_tour, p_tour_code, p_option_code)` | `connection.manage` và `catalog.manage` | `duplicate_code`, `already_linked`, `tour_not_found`, `invalid_input` |
+| `channel_catalog_link(p_product, p_option)` | `connection.manage` | `option_not_found`. Trả `placed` |
+| `channel_catalog_ignore(p_product, p_ignored)` | `connection.manage` | |
+| `channel_catalog_review(p_product, p_fields)` | `catalog.manage` | Mảng rỗng là giữ bản nội bộ. Trường kênh bỏ trống không xóa dữ liệu nội bộ. `product_not_linked` |
+| `channel_availability_compare(p_product, p_from, p_to)` | `connection.read` và `departure.read` | Chỉ đọc |
+| `channel_availability_create_departures(p_product, p_from, p_to, p_capacity)` | `departure.manage` | Sức chứa bắt buộc. Không đụng chuyến đã có. `product_not_linked`, `invalid_capacity` |
+
 ### Nhập file, đối soát, báo cáo
 
 | Hàm | Quyền | Ghi chú |
