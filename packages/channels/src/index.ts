@@ -248,19 +248,28 @@ export function mockCatalog(channel: 'viator' | 'getyourguide', version: number)
     : [...base, { product_code: `${p}-1004`, title: 'Hoi An lantern evening', destination: 'Quảng Nam', duration_minutes: 240, language: 'en', start_times: ['16:00'], status: 'ACTIVE' }]
 }
 
-/** Lịch giả theo ngày bắt đầu truyền vào. Sản phẩm không khai giờ thì không có lịch. */
-export function mockAvailability(products: ChannelProduct[], from: Date, days = 14): ChannelAvailability[] {
+/** Ngày lịch (YYYY-MM-DD) của một thời điểm tại múi giờ cho trước. toISOString trả ngày UTC, sẽ lệch ngày. */
+function localDateAt(at: Date, timezone: string): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(at)
+}
+
+/**
+ * Lịch giả bắt đầu từ ngày địa phương của `from`. Dùng múi giờ của sản phẩm, thiếu thì `defaultTimezone`.
+ * Sản phẩm không khai giờ thì không có lịch.
+ */
+export function mockAvailability(products: ChannelProduct[], from: Date, days = 14, defaultTimezone = 'Asia/Ho_Chi_Minh'): ChannelAvailability[] {
   const out: ChannelAvailability[] = []
   for (const p of products) {
     const seed = [...p.product_code].reduce((s, c) => s + c.charCodeAt(0), 0)
+    const startDay = Date.parse(`${localDateAt(from, p.timezone ?? defaultTimezone)}T00:00:00Z`)
     for (const time of p.start_times ?? []) {
       for (let i = 0; i < days; i += 1) {
-        const d = new Date(from.getTime() + i * 86400000)
         const vacancies = (seed + i * 3) % 12
         out.push({
           product_code: p.product_code,
           option_code: p.option_code,
-          local_date: d.toISOString().slice(0, 10),
+          // Cộng ngày trên mốc UTC đúng nửa đêm: không bị đổi giờ mùa hè làm trùng hay mất ngày.
+          local_date: new Date(startDay + i * 86400000).toISOString().slice(0, 10),
           local_time: time,
           vacancies,
           status: vacancies === 0 ? 'sold_out' : 'available',

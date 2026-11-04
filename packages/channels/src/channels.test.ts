@@ -50,6 +50,19 @@ describe('connector mô phỏng', () => {
     for (const i of items) expect(i.status === 'sold_out').toBe(i.vacancies === 0)
   })
 
+  it('lịch giả bắt đầu theo ngày địa phương, không theo ngày UTC', () => {
+    // 00:30 ngày 05/11 ở Việt Nam vẫn là 17:30 ngày 04/11 theo UTC.
+    const lateNight = new Date('2026-11-04T17:30:00Z')
+    const items = mockAvailability(mockCatalog('viator', 1).slice(0, 1), lateNight, 2)
+    expect(items.map((i) => i.local_date)).toEqual(['2026-11-05', '2026-11-06'])
+  })
+
+  it('múi giờ của sản phẩm được ưu tiên hơn múi giờ mặc định, kể cả qua tháng', () => {
+    const product = { product_code: 'SIM-TZ', start_times: ['09:00'], timezone: 'America/New_York' }
+    const items = mockAvailability([product], new Date('2026-12-01T02:00:00Z'), 2)
+    expect(items.map((i) => i.local_date)).toEqual(['2026-11-30', '2026-12-01'])
+  })
+
   it('không khai khả năng chưa có: sửa từ hệ thống và truy vấn phục hồi', () => {
     expect(VIATOR_MOCK.capabilities.amend_from_system).toBe('unsupported')
     expect(GETYOURGUIDE_MOCK.capabilities.recovery_query).toBe('unsupported')
