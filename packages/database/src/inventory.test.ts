@@ -209,6 +209,19 @@ describe('đổi chuyến', () => {
     expect(c!.change_type).toBe('placed')
   })
 
+  it('booking nhập lúc chưa có chuyến: xếp đúng ngày giờ thì tự gỡ cờ do hệ thống đặt', async () => {
+    const r = await rpc(service, 'ingest_channel_event', w.connection, bookingEvent('FP-3', '2030-06-08'))
+    const [before] = await owner<{ needs_action: boolean; action_reason: string }>(`select needs_action, action_reason from public.bookings where id = $1`, [r.booking_id])
+    expect(before).toMatchObject({ needs_action: true })
+    expect(before!.action_reason).toContain('Không tìm thấy chuyến')
+    const [item] = await owner<{ id: string }>(`select id from public.booking_items where booking_id = $1`, [r.booking_id])
+    const dep = await w.departure('2030-06-08', 5)
+
+    expect(await rpc(user(w.operator), 'move_booking_item', item!.id, dep)).toMatchObject({ ok: true, channel_request_status: 'not_applicable' })
+    const [after] = await owner<{ needs_action: boolean; action_reason: string | null }>(`select needs_action, action_reason from public.bookings where id = $1`, [r.booking_id])
+    expect(after).toMatchObject({ needs_action: false, action_reason: null })
+  })
+
   it('xếp booking đang chờ sang ngày khác vẫn phải xử lý tay trên kênh', async () => {
     const r = await rpc(service, 'ingest_channel_event', w.connection, bookingEvent('FP-2', '2030-06-06'))
     const [item] = await owner<{ id: string }>(`select id from public.booking_items where booking_id = $1`, [r.booking_id])
@@ -229,6 +242,30 @@ describe('đổi chuyến', () => {
     expect(res).toMatchObject({ ok: false, code: 'no_seats' })
     expect((await seats(from)).committed).toBe(2)
     expect((await seats(to)).committed).toBe(0)
+  })
+})
+
+describe('ghép khách từ nhiều kênh', () => {
+  it('hai kênh ghép vào cùng gói nội bộ thì vào chung chuyến và dùng chung sức chứa', async () => {
+    const [other] = await owner<{ id: string }>(
+      `insert into public.channel_connections (organization_id, channel, account_name, hold_ttl_seconds)
+       values ($1, 'getyourguide', 'Mock GYG', 900) returning id`, [w.org])
+    await owner(
+      `insert into public.channel_product_mappings
+         (organization_id, connection_id, external_product_code, external_option_code, tour_option_id, is_verified)
+       values ($1, $2, 'P1', '', $3, true)`, [w.org, other!.id, w.option])
+    const dep = await w.departure('2030-06-20', 3)
+
+    const a = await rpc(service, 'ingest_channel_event', w.connection, bookingEvent('MIX-V', '2030-06-20', { pax: { adult: 2 } }))
+    const b = await rpc(service, 'ingest_channel_event', other!.id, bookingEvent('MIX-G', '2030-06-20', { pax: { adult: 1 } }))
+    expect((await seats(dep)).committed).toBe(3)
+    const placed = await owner<{ departure_id: string }>(`select departure_id from public.booking_items where booking_id = any($1::uuid[])`, [[a.booking_id, b.booking_id]])
+    expect(placed.map((p) => p.departure_id)).toEqual([dep, dep])
+
+    // Chuyến đã đầy do cả hai kênh: kênh nào đến sau cũng vào hàng chờ, không vượt sức chứa.
+    const c = await rpc(service, 'ingest_channel_event', other!.id, bookingEvent('MIX-G2', '2030-06-20', { pax: { adult: 1 } }))
+    expect(c).toMatchObject({ ok: true, queued: true })
+    expect((await seats(dep)).committed).toBe(3)
   })
 })
 

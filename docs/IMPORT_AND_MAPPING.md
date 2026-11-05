@@ -84,6 +84,12 @@ Tải ở cổng nhà cung cấp: **Performance → Booking details**, chọn ng
 
 Đây là nhập file: booking đổi hoặc hủy trên cổng chỉ cập nhật khi tải và nhập lại.
 
+### Ghép khách giữa các kênh
+
+Khách vào chung chuyến khi các kênh cùng nằm trong một doanh nghiệp và mã của chúng được ghép vào cùng một gói nội bộ, cùng ngày và giờ. Chọn đúng tài khoản kênh khi nhập: màn nhập chưa kiểm tra file có khớp với kênh đã chọn không.
+
+Chuyến gắn với gói chỉ nhận gói đó, nên gói ghép 2 tiếng và 4 tiếng không lẫn xe. Hệ thống chưa chặn hai booking tour riêng trùng ngày giờ vào cùng một chuyến.
+
 ## Nhập bảng đối soát
 
 Vào **Tài chính và đối soát > Đối soát > Nhập bảng thanh toán**. Cần ánh xạ mã booking, tiền tệ, số thực nhận.

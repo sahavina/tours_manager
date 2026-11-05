@@ -73,6 +73,10 @@ Sau đó đã ghép 5 mã, tạo 12 chuyến và xếp đủ 15 booking trên d�
 
 Đã nhập file thật tải từ cổng nhà cung cấp qua màn **Nhập dữ liệu**: 18 booking (12 đang chạy, 6 đã hủy), không dòng lỗi, nhập lại không tạo trùng. Tổng số khách và tiền dự kiến nhận khớp với file; 10 mã hiển thị trên cổng đều có trong file với ngày đi khớp. Parser được test bằng dữ liệu giả; file và dữ liệu thật chỉ nằm trên máy, không vào Git. Danh sách sản phẩm CSV chưa tải được vì khung trình duyệt chặn thao tác tự động. Đã ghép 4 mã với gói nội bộ tạo qua API; sau đó tạo 12 chuyến và xếp đủ 12 booking đang chạy. Sức chứa 12 khách mỗi chuyến do người dùng chọn, đưa đón của 4 gói để "Không".
 
+### Ghép khách giữa GetYourGuide và Viator
+
+Hai kênh đã được nhập lại vào một doanh nghiệp local chung: 33 booking (27 đang chạy, 6 đã hủy), 24 chuyến, 82 chỗ. Gói ghép 4 tiếng và 2 tiếng của hai kênh dùng chung một gói nội bộ, gói riêng và gói chưa rõ thời lượng để tách. Trong dữ liệu hiện tại chưa có chuyến nào có khách từ cả hai kênh, nên việc vào chung chuyến và dùng chung sức chứa mới được kiểm chứng bằng test.
+
 ## Chưa kiểm chứng
 
 | Hạng mục | Vì sao |
