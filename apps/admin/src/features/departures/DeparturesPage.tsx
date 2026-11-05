@@ -8,6 +8,7 @@ import { useAuth } from '../../auth/AuthProvider'
 import { Can, ErrorState, LocalTime, NoData, PageHead } from '../../components/common'
 import { rpcOk, supabase, unwrap, type Row } from '../../lib/supabase'
 import { useUrlTable } from '../../lib/use-url-state'
+import { BookingMix, MIX_FILTERS, MIX_OPTIONS, mixText } from './BookingMix'
 
 const WEEKDAYS = [
   { value: 1, label: 'T2' }, { value: 2, label: 'T3' }, { value: 3, label: 'T4' }, { value: 4, label: 'T5' },
@@ -164,8 +165,10 @@ export function DeparturesPage() {
     onError: (e: Error) => message.error(e.message),
   })
 
+  const mixFilter = f.mix ? MIX_FILTERS[f.mix] : undefined
+  const rows = (list.data ?? []).filter((d) => !mixFilter || mixFilter.test(d.booking_count, d.channel_mix, d.is_private))
   const byDay = new Map<string, Row[]>()
-  for (const d of list.data ?? []) byDay.set(d.local_date, [...(byDay.get(d.local_date) ?? []), d])
+  for (const d of rows) byDay.set(d.local_date, [...(byDay.get(d.local_date) ?? []), d])
 
   return (
     <>
@@ -183,13 +186,15 @@ export function DeparturesPage() {
         <div className="filters">
           <Select allowClear showSearch optionFilterProp="label" placeholder="Tất cả tour" style={{ minWidth: 220 }} value={f.tour}
             options={(catalog.data ?? []).map((t) => ({ value: t.id, label: t.name }))} onChange={(v) => table.patch({ filters: { tour: v } })} />
+          <Select allowClear placeholder="Mọi kiểu ghép" style={{ minWidth: 190 }} value={f.mix} options={MIX_OPTIONS}
+            onChange={(v) => table.patch({ filters: { mix: v } })} />
           {view === 'list' && (
             <DatePicker.RangePicker format="DD/MM/YYYY" allowClear={false} value={[dayjs(from), dayjs(to)]}
               onChange={(v) => table.patch({ filters: { from: v?.[0]?.format('YYYY-MM-DD'), to: v?.[1]?.format('YYYY-MM-DD') } })} />
           )}
         </div>
         {list.isError ? <ErrorState error={list.error} onRetry={() => list.refetch()} /> : view === 'calendar' ? (
-          <Calendar value={month} onPanelChange={(d) => setMonth(d)} onSelect={(d, info) => {
+          <Calendar className="trip-calendar" value={month} onPanelChange={(d) => setMonth(d)} onSelect={(d, info) => {
             if (info.source === 'date') table.patch({ filters: { view: 'list', from: d.format('YYYY-MM-DD'), to: d.format('YYYY-MM-DD') } })
             else setMonth(d)
           }} cellRender={(date, info) => {
@@ -200,24 +205,31 @@ export function DeparturesPage() {
               <div className="cal-cell">
                 {rows.slice(0, 3).map((d) => {
                   const cls = d.available_seats <= 0 ? 'full' : d.departure_seats > 0 && (d.guide_count === 0 || d.vehicle_count === 0) ? 'warn' : 'ok'
-                  return <span key={d.id} className={`cal-chip ${cls}`} title={`${d.tour_name} · còn ${d.available_seats}`}>{String(d.local_time).slice(0, 5)} {d.tour_code} · {d.committed_seats}/{d.capacity}</span>
+                  const title = [d.tour_name, d.option_name ?? 'Mọi gói', d.is_private && d.booking_count > 0 ? 'Tour riêng' : `còn ${d.available_seats}`, mixText(d.channel_mix)].filter(Boolean).join(' · ')
+                  return (
+                    <span key={d.id} className={`cal-chip ${cls}`} title={title}>
+                      {String(d.local_time).slice(0, 5)} · {d.committed_seats}/{d.capacity}{d.channel_mix.length >= 2 && ` · ${d.channel_mix.length} kênh`}
+                      <span className="cal-chip-sub">{d.option_name ?? d.tour_code}</span>
+                    </span>
+                  )
                 })}
                 {rows.length > 3 && <span className="muted">+{rows.length - 3} chuyến</span>}
               </div>
             )
           }} />
         ) : (
-          <Table rowKey="id" size="middle" loading={list.isLoading} dataSource={list.data} scroll={{ x: 'max-content' }}
+          <Table rowKey="id" size="middle" loading={list.isLoading} dataSource={rows} scroll={{ x: 'max-content' }}
             pagination={{ pageSize: 50, hideOnSinglePage: true }} locale={{ emptyText: <NoData text="Chưa có chuyến trong khoảng này" /> }}
             onRow={(r) => ({ onDoubleClick: () => nav(`/operations/${r.id}`) })}
             columns={[
               { title: 'Ngày giờ', render: (_, d) => <Link to={`/operations/${d.id}`}><LocalTime date={d.local_date} time={d.local_time} tz={d.timezone} /></Link> },
               { title: 'Tour', render: (_, d) => <>{d.tour_name}<div className="muted" style={{ fontSize: 12 }}>{d.option_name ?? 'Mọi gói'}</div></> },
+              { title: 'Booking / kênh', render: (_, d) => <BookingMix bookings={d.booking_count} mix={d.channel_mix} isPrivate={d.is_private} /> },
               { title: 'Sức chứa', dataIndex: 'capacity', align: 'right' },
               { title: 'Đã xác nhận', dataIndex: 'committed_seats', align: 'right' },
               { title: 'Đang giữ', dataIndex: 'held_seats', align: 'right' },
               { title: 'Chặn', dataIndex: 'blocked_seats', align: 'right' },
-              { title: 'Còn bán', dataIndex: 'available_seats', align: 'right', render: (v) => <b style={{ color: v <= 0 ? '#b91c1c' : undefined }}>{v}</b> },
+              { title: 'Còn bán', dataIndex: 'available_seats', align: 'right', render: (v, d) => d.is_private && d.booking_count > 0 ? <Tag>Riêng</Tag> : <b style={{ color: v <= 0 ? '#b91c1c' : undefined }}>{v}</b> },
               { title: 'Mở bán', render: (_, d) => <Switch size="small" checked={d.sale_open} disabled={!can('departure.manage')} loading={toggleSale.isPending} onChange={(open) => toggleSale.mutate({ id: d.id, open })} /> },
               { title: 'HDV / xe', render: (_, d) => d.departure_seats === 0 ? <span className="muted">Chưa có khách</span> : <Space size={4}>
                 {d.guide_count > 0 ? <Tag color="green">HDV {d.guide_count}</Tag> : <Tag color="orange">Thiếu HDV</Tag>}

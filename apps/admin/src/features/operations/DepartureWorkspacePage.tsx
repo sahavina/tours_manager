@@ -1,14 +1,15 @@
 import { ArrowDownOutlined, ArrowUpOutlined, DownloadOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Alert, App, Button, Card, Col, Descriptions, Form, Input, InputNumber, List, Modal, Row as GridRow, Select, Space, Switch, Table, Tabs, Tag, Typography } from 'antd'
-import { ATTENDANCE, formatPax, toCsv } from '@tours/core'
+import { ATTENDANCE, CHANNEL, formatPax, toCsv } from '@tours/core'
 import dayjs from 'dayjs'
 import { useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
-import { Can, ErrorState, fmtDateTime, Loading, LocalTime, MoneyText, NoData, PageHead } from '../../components/common'
+import { Can, ChannelLabel, ErrorState, fmtDateTime, Loading, LocalTime, MoneyText, NoData, PageHead } from '../../components/common'
 import { friendlyError, rpc, rpcOk, supabase, unwrap, type Row } from '../../lib/supabase'
 import { downloadText } from '../../lib/use-url-state'
+import { BookingMix, isPrivateConflict } from '../departures/BookingMix'
 
 export function DepartureWorkspacePage() {
   const { id = '' } = useParams()
@@ -63,7 +64,7 @@ export function DepartureWorkspacePage() {
   const active = (manifest.data ?? []).filter((m) => m.presence === 'active')
   const exportList = () => {
     downloadText(`danh-sach-${d.local_date}-${d.tour_code}.csv`, toCsv(active.map((m) => ({
-      'Mã booking': m.code, 'Khách đại diện': m.lead_name, 'Điện thoại': m.lead_phone, 'Số khách': m.pax_total,
+      'Mã booking': m.code, 'Nguồn bán': m.channel ? (CHANNEL[m.channel] ?? m.channel) : 'Nội bộ', 'Mã kênh': m.external_ref, 'Khách đại diện': m.lead_name, 'Điện thoại': m.lead_phone, 'Số khách': m.pax_total,
       'Khách sạn': m.hotel_name, 'Địa chỉ': m.address, 'Giờ đón': m.pickup_local_time ? String(m.pickup_local_time).slice(0, 5) : '',
       'Xe': m.vehicle_name, 'Yêu cầu đặc biệt': m.special_requests, 'Ghi chú điều hành': m.ops_note,
     }))))
@@ -79,6 +80,7 @@ export function DepartureWorkspacePage() {
   }
 
   const tab = params.get('tab') ?? 'pax'
+  const paxTotal = active.reduce((s, m) => s + (m.pax_total as number), 0)
   return (
     <>
       <PageHead title={<Space wrap>{d.tour_name}<LocalTime date={d.local_date} time={d.local_time} tz={d.timezone} /></Space>} extra={
@@ -87,9 +89,14 @@ export function DepartureWorkspacePage() {
           {d.status === 'scheduled' && can('ops.manage') && <Button onClick={finish}>Đóng chuyến</Button>}
         </>
       } />
+      {isPrivateConflict(d.is_private, d.booking_count) && (
+        <Alert type="error" showIcon style={{ marginBottom: 16 }} message={`Tour riêng đang có ${d.booking_count} booking trên cùng một chuyến`}
+          description="Hệ thống chỉ cảnh báo, không tự tách. Nếu đây là các nhóm riêng, hãy chuyển bớt booking sang chuyến khác." />
+      )}
       <Card style={{ marginBottom: 16 }}>
         <Descriptions size="small" column={{ xs: 2, md: 4 }}>
           <Descriptions.Item label="Gói">{d.option_name ?? 'Mọi gói'}</Descriptions.Item>
+          <Descriptions.Item label="Booking / kênh"><div><BookingMix bookings={d.booking_count} mix={d.channel_mix} isPrivate={d.is_private} /></div></Descriptions.Item>
           <Descriptions.Item label="Sức chứa">
             <Space size={4}>{d.capacity}{d.blocked_seats > 0 && <span className="muted">(chặn {d.blocked_seats})</span>}
               <Can perm="departure.manage"><Button type="link" size="small" onClick={() => { capForm.setFieldsValue({ capacity: d.capacity, blocked_seats: d.blocked_seats }); setCapOpen(true) }}>Đổi</Button></Can>
@@ -97,7 +104,7 @@ export function DepartureWorkspacePage() {
           </Descriptions.Item>
           <Descriptions.Item label="Đã xác nhận">{d.committed_seats}</Descriptions.Item>
           <Descriptions.Item label="Đang giữ">{d.held_seats}</Descriptions.Item>
-          <Descriptions.Item label="Còn bán"><b style={{ color: d.available_seats <= 0 ? '#b91c1c' : undefined }}>{d.available_seats}</b></Descriptions.Item>
+          <Descriptions.Item label="Còn bán">{d.is_private && d.booking_count > 0 ? <Tag>Riêng</Tag> : <b style={{ color: d.available_seats <= 0 ? '#b91c1c' : undefined }}>{d.available_seats}</b>}</Descriptions.Item>
           <Descriptions.Item label="Mở bán"><Switch size="small" checked={d.sale_open} disabled={!can('departure.manage')} onChange={(v) => sale.mutate(v)} /></Descriptions.Item>
           <Descriptions.Item label="Hạn nhận khách">{fmtDateTime(d.cutoff_at)}</Descriptions.Item>
           <Descriptions.Item label="Nhà cung cấp"><Switch size="small" checked={Boolean(d.supplier_confirmed_at)} disabled={!can('ops.manage')} checkedChildren="Đã xác nhận" unCheckedChildren="Chưa" onChange={(v) => supplier.mutate(v)} /></Descriptions.Item>
@@ -111,7 +118,7 @@ export function DepartureWorkspacePage() {
         <Col xs={24} xl={can('ops.read') ? 16 : 24}>
           <Card>
             <Tabs activeKey={tab} onChange={(k) => setParams(k === 'pax' ? {} : { tab: k }, { replace: true })} items={[
-              { key: 'pax', label: `Khách (${active.length})`, children: <Manifest departure={id} rows={manifest.data} loading={manifest.isLoading} error={manifest.error} /> },
+              { key: 'pax', label: `Khách (${paxTotal}) · ${active.length} booking`, children: <Manifest departure={id} rows={manifest.data} loading={manifest.isLoading} error={manifest.error} /> },
               // RLS trả rỗng khi thiếu ops.read: "Chưa có sự cố" sẽ là thông tin sai, nên ẩn hẳn tab.
               ...(can('ops.read') ? [{ key: 'incidents', label: 'Sự cố', children: <Incidents departure={id} /> }] : []),
               ...(can('finance.read') ? [{ key: 'costs', label: 'Chi phí', children: <Costs departure={id} /> }] : []),
@@ -269,6 +276,7 @@ function Manifest({ departure, rows, loading, error }: { departure: string; rows
             {r.presence === 'moved' && <Tag color="orange" style={{ marginLeft: 4 }}>Đã chuyển chuyến</Tag>}
             {r.presence === 'cancelled' && <Tag color="red" style={{ marginLeft: 4 }}>Đã hủy</Tag>}
             <div className="muted" style={{ fontSize: 12 }}>{r.lead_name} {r.lead_phone}</div></> },
+          { title: 'Nguồn bán', render: (_, r) => <><ChannelLabel channel={r.channel} account={r.account_name} />{r.external_ref && <div className="mono" style={{ fontSize: 12 }}>{r.external_ref}</div>}</> },
           { title: 'Khách', render: (_, r) => <>{r.pax_total}<div className="muted" style={{ fontSize: 12 }}>{formatPax(r.pax)}</div></> },
           { title: 'Điểm đón', render: (_, r) => <>
             {r.hotel_name ?? r.address ?? <span className="muted">Thiếu</span>}

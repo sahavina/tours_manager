@@ -1,6 +1,6 @@
 // Tồn chỗ và đồng bộ: các tình huống ở đặc tả §14. Mọi bài đọc số chỗ thật sau khi commit.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { bookingEvent, closePool, makeWorld, owner, rpc, seats, service, user, type World } from './test/harness'
+import { as, bookingEvent, closePool, makeWorld, owner, rpc, seats, service, user, type World } from './test/harness'
 
 let w: World
 
@@ -266,6 +266,74 @@ describe('ghép khách từ nhiều kênh', () => {
     const c = await rpc(service, 'ingest_channel_event', other!.id, bookingEvent('MIX-G2', '2030-06-20', { pax: { adult: 1 } }))
     expect(c).toMatchObject({ ok: true, queued: true })
     expect((await seats(dep)).committed).toBe(3)
+  })
+
+  describe('theo dõi trên màn hình chuyến', () => {
+    const secondChannel = async (product: string) => {
+      const [other] = await owner<{ id: string }>(
+        `insert into public.channel_connections (organization_id, channel, account_name, hold_ttl_seconds)
+         values ($1, 'getyourguide', 'GYG theo dõi', 900) returning id`, [w.org])
+      await owner(
+        `insert into public.channel_product_mappings
+           (organization_id, connection_id, external_product_code, external_option_code, tour_option_id, is_verified)
+         values ($1, $2, $3, '', $4, true)`, [w.org, other!.id, product, w.option])
+      return other!.id
+    }
+    const board = async (date: string, dep: string) =>
+      (await rpc(user(w.operator), 'ops_board', w.org, date, date)).find((d: any) => d.id === dep)
+
+    it('bảng điều hành và danh sách khách cho biết booking đến từ kênh nào', async () => {
+      const other = await secondChannel('P1')
+      const dep = await w.departure('2030-06-21', 10)
+      await rpc(service, 'ingest_channel_event', w.connection, bookingEvent('TRK-V', '2030-06-21', { pax: { adult: 2 } }))
+      await rpc(service, 'ingest_channel_event', other, bookingEvent('TRK-G', '2030-06-21', { pax: { adult: 1 } }))
+
+      const row = await board('2030-06-21', dep)
+      expect(row).toMatchObject({ bookings: 2, seats: 3, is_private: false })
+      expect(row.channel_mix).toHaveLength(2)
+      expect(row.channel_mix.find((m: any) => m.channel === 'getyourguide')).toEqual({ channel: 'getyourguide', bookings: 1, seats: 1 })
+      expect(row.channel_mix.find((m: any) => m.channel !== 'getyourguide')).toMatchObject({ bookings: 1, seats: 2 })
+
+      const list = await rpc(user(w.operator), 'departure_manifest', dep)
+      expect(list.find((m: any) => m.external_ref === 'TRK-G')).toMatchObject({ channel: 'getyourguide', account_name: 'GYG theo dõi', presence: 'active' })
+    })
+
+    it('booking đã hủy không còn được tính vào chuyến', async () => {
+      const dep = await w.departure('2030-06-22', 10)
+      await rpc(service, 'ingest_channel_event', w.connection, bookingEvent('TRK-C1', '2030-06-22'))
+      await rpc(service, 'ingest_channel_event', w.connection, bookingEvent('TRK-C2', '2030-06-22'))
+      await rpc(service, 'ingest_channel_event', w.connection, { event_id: 'TRK-C2-x', type: 'booking.cancelled', external_ref: 'TRK-C2', version: 2, data: {} })
+
+      const row = await board('2030-06-22', dep)
+      expect(row.bookings).toBe(1)
+      expect(row.channel_mix).toHaveLength(1)
+      expect(row.channel_mix[0].bookings).toBe(1)
+    })
+
+    it('nhận ra tour riêng, kể cả booking gói riêng nằm trên chuyến Mọi gói', async () => {
+      await owner(`update public.tour_options set is_private = true where id = $1`, [w.option])
+      try {
+        const dep = await w.departure('2030-06-23', 10)
+        await rpc(service, 'ingest_channel_event', w.connection, bookingEvent('TRK-P', '2030-06-23'))
+        expect(await board('2030-06-23', dep)).toMatchObject({ is_private: true, bookings: 1 })
+
+        const anyOption = await rpc(user(w.ownerId), 'create_departure', w.org, w.tour, null, '2030-06-24', '08:00', 'Asia/Ho_Chi_Minh', 10, null)
+        expect(await board('2030-06-24', anyOption.departure_id)).toMatchObject({ is_private: false, bookings: 0 })
+        await rpc(service, 'ingest_channel_event', w.connection, bookingEvent('TRK-P2', '2030-06-24'))
+        expect(await board('2030-06-24', anyOption.departure_id)).toMatchObject({ is_private: true, bookings: 1 })
+      } finally {
+        await owner(`update public.tour_options set is_private = false where id = $1`, [w.option])
+      }
+    })
+
+    it('view chuyến trả cùng số liệu cho người có quyền xem chuyến', async () => {
+      const dep = await w.departure('2030-06-25', 10)
+      await rpc(service, 'ingest_channel_event', w.connection, bookingEvent('TRK-W', '2030-06-25', { pax: { adult: 2 } }))
+      const [row] = await as<any>(user(w.operator), `select booking_count, channel_mix, is_private from public.v_departure_availability where id = $1`, [dep])
+      expect(row).toMatchObject({ booking_count: 1, is_private: false })
+      expect(row.channel_mix).toHaveLength(1)
+      expect(row.channel_mix[0]).toMatchObject({ bookings: 1, seats: 2 })
+    })
   })
 })
 

@@ -88,7 +88,9 @@ Tải ở cổng nhà cung cấp: **Performance → Booking details**, chọn ng
 
 Khách vào chung chuyến khi các kênh cùng nằm trong một doanh nghiệp và mã của chúng được ghép vào cùng một gói nội bộ, cùng ngày và giờ. Chọn đúng tài khoản kênh khi nhập: màn nhập chưa kiểm tra file có khớp với kênh đã chọn không.
 
-Chuyến gắn với gói chỉ nhận gói đó, nên gói ghép 2 tiếng và 4 tiếng không lẫn xe. Hệ thống chưa chặn hai booking tour riêng trùng ngày giờ vào cùng một chuyến.
+Chuyến gắn với gói chỉ nhận gói đó, nên gói ghép 2 tiếng và 4 tiếng không lẫn xe. Hệ thống chưa chặn hai booking tour riêng trùng ngày giờ vào cùng một chuyến, chỉ cảnh báo "Tour riêng bị ghép". Cảnh báo dựa vào công tắc "Tour riêng" của gói, nên phải bật công tắc này khi tạo gói riêng.
+
+Theo dõi chuyến ghép ở **Lịch khởi hành** và **Điều hành**: cột "Booking / kênh" và bộ lọc "Có từ 2 booking", "Ghép nhiều kênh", "Tour riêng bị ghép". Trong chi tiết chuyến và file xuất có nguồn bán và mã booking của kênh. Danh sách của hướng dẫn viên không có các thông tin nguồn bán này.
 
 ## Nhập bảng đối soát
 

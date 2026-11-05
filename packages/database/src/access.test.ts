@@ -90,6 +90,13 @@ describe('hướng dẫn viên', () => {
     expect(keys).not.toMatch(/gross|fee|amount|payout|profit|currency/)
   })
 
+  it('danh sách khách của hướng dẫn viên không có nguồn bán', async () => {
+    const list = await rpc(user(a.guideUser), 'guide_manifest', assigned)
+    expect(Object.keys(list[0])).not.toEqual(expect.arrayContaining(['channel']))
+    expect(Object.keys(list[0])).not.toEqual(expect.arrayContaining(['external_ref']))
+    expect(Object.keys(list[0])).not.toEqual(expect.arrayContaining(['account_name']))
+  })
+
   it('không đọc trực tiếp được booking, tài chính, kết nối', async () => {
     for (const t of ['bookings', 'booking_financials', 'channel_connections', 'booking_items', 'expenses', 'integration_events']) {
       expect(await as(user(a.guideUser), `select 1 from public.${t} where organization_id = $1`, [a.org])).toHaveLength(0)

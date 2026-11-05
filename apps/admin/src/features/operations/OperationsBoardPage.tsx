@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/AuthProvider'
 import { ErrorState, LocalTime, NoData, PageHead } from '../../components/common'
 import { rpc, type Row } from '../../lib/supabase'
 import { useUrlTable } from '../../lib/use-url-state'
+import { BookingMix, MIX_FILTERS, MIX_OPTIONS } from '../departures/BookingMix'
 
 const FLAGS: Record<string, { label: string; test: (d: Row) => boolean }> = {
   missing: { label: 'Thiếu HDV hoặc xe', test: (d) => d.missing_guide || d.missing_vehicle },
@@ -29,7 +30,8 @@ export function OperationsBoardPage() {
     queryFn: () => rpc<Row[]>('ops_board', { p_org: orgId, p_from: from, p_to: to }),
   })
   const flag = f.flag ? FLAGS[f.flag] : undefined
-  const rows = (board.data ?? []).filter((d) => (f.all === '1' || d.seats > 0) && (!flag || flag.test(d)))
+  const mixFilter = f.mix ? MIX_FILTERS[f.mix] : undefined
+  const rows = (board.data ?? []).filter((d) => (f.all === '1' || d.seats > 0) && (!flag || flag.test(d)) && (!mixFilter || mixFilter.test(d.bookings, d.channel_mix, d.is_private)))
 
   return (
     <>
@@ -42,6 +44,8 @@ export function OperationsBoardPage() {
             options={Object.entries(FLAGS).map(([value, v]) => ({ value, label: v.label }))} onChange={(v) => table.patch({ filters: { flag: v } })} />
           <Select style={{ minWidth: 170 }} value={f.all === '1' ? '1' : ''} options={[{ value: '', label: 'Chuyến có khách' }, { value: '1', label: 'Mọi chuyến' }]}
             onChange={(v) => table.patch({ filters: { all: v || undefined } })} />
+          <Select allowClear placeholder="Mọi kiểu ghép" style={{ minWidth: 190 }} value={f.mix} options={MIX_OPTIONS}
+            onChange={(v) => table.patch({ filters: { mix: v } })} />
         </div>
         {board.isError ? <ErrorState error={board.error} onRetry={() => board.refetch()} /> : (
           <Table rowKey="id" size="middle" loading={board.isLoading} dataSource={rows} scroll={{ x: 'max-content' }} pagination={{ pageSize: 50, hideOnSinglePage: true }}
@@ -50,6 +54,7 @@ export function OperationsBoardPage() {
               { title: 'Ngày giờ', render: (_, d) => <Link to={`/operations/${d.id}`}><LocalTime date={d.local_date} time={d.local_time} tz={d.timezone} /></Link> },
               { title: 'Tour', render: (_, d) => <>{d.tour_name}<div className="muted" style={{ fontSize: 12 }}>{d.option_name ?? 'Mọi gói'}</div></> },
               { title: 'Khách', dataIndex: 'seats', align: 'right' },
+              { title: 'Booking / kênh', render: (_, d) => <BookingMix bookings={d.bookings} mix={d.channel_mix} isPrivate={d.is_private} /> },
               { title: 'Chỗ xe', align: 'right', render: (_, d) => d.vehicles > 0 ? <span style={{ color: d.vehicle_over ? '#b91c1c' : undefined }}>{d.vehicle_seats}</span> : '' },
               { title: 'Việc cần làm', render: (_, d) => {
                 const tags = [

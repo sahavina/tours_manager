@@ -77,6 +77,8 @@ Sau đó đã ghép 5 mã, tạo 12 chuyến và xếp đủ 15 booking trên d�
 
 Hai kênh đã được nhập lại vào một doanh nghiệp local chung: 33 booking (27 đang chạy, 6 đã hủy), 24 chuyến, 82 chỗ. Gói ghép 4 tiếng và 2 tiếng của hai kênh dùng chung một gói nội bộ, gói riêng và gói chưa rõ thời lượng để tách. Trong dữ liệu hiện tại chưa có chuyến nào có khách từ cả hai kênh, nên việc vào chung chuyến và dùng chung sức chứa mới được kiểm chứng bằng test.
 
+Màn hình chuyến đã hiện số booking, kênh và tour riêng. Số liệu được kiểm bằng test và trên trình duyệt với dữ liệu thật. Nhãn "Ghép 2 kênh" và cảnh báo "Tour riêng bị ghép" được xem trên một chuyến demo chỉnh tạm rồi trả lại, vì dữ liệu thật chưa có trường hợp này. Hệ thống chỉ cảnh báo, chưa chặn booking thứ hai vào tour riêng, và cổng số chỗ cho kênh vẫn dùng số còn bán như cũ.
+
 ## Chưa kiểm chứng
 
 | Hạng mục | Vì sao |
