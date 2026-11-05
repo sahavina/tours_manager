@@ -145,8 +145,8 @@ function Assignments({ departure, onChange }: { departure: string; onChange: () 
     queryKey: ['departure', departure, 'assignments'],
     queryFn: async () => {
       const [g, v] = await Promise.all([
-        supabase.from('guide_assignments').select('id, role, notified_at, confirmed_at, guides(full_name, phone)').eq('departure_id', departure),
-        supabase.from('vehicle_assignments').select('id, driver_name, driver_phone, notified_at, confirmed_at, vehicles(name, plate, seats)').eq('departure_id', departure),
+        supabase.from('guide_assignments').select('id, guide_id, role, notified_at, confirmed_at, guides(full_name, phone)').eq('departure_id', departure),
+        supabase.from('vehicle_assignments').select('id, vehicle_id, driver_name, driver_phone, notified_at, confirmed_at, vehicles(name, plate, seats)').eq('departure_id', departure),
       ])
       return { guides: unwrap(g) as unknown as Row[], vehicles: unwrap(v) as unknown as Row[] }
     },
@@ -162,6 +162,27 @@ function Assignments({ departure, onChange }: { departure: string; onChange: () 
       return { guides: unwrap(g) as Row[], vehicles: unwrap(v) as Row[] }
     },
   })
+  const clashes = useQuery({
+    queryKey: ['departure', departure, 'conflicts'],
+    queryFn: () => rpc<Row[]>('assignment_conflicts', { p_departure: departure }),
+  })
+  const clashesOf = (kind: string, resource?: string) => (clashes.data ?? []).filter((c) => c.kind === kind && c.resource_id === resource)
+  const clashText = (c: Row) => `${dayjs(c.local_date).format('DD/MM')} ${String(c.local_time).slice(0, 5)} ${c.option_name ?? c.tour_name}`
+  // Cảnh báo ngay trên từng người và xe trong danh sách chọn, để biết trước khi gán.
+  const optionSuffix = (kind: string, resource: string) => {
+    const list = clashesOf(kind, resource)
+    if (!list.length) return ''
+    return list.some((c) => c.level === 'overlap') ? ' · trùng lịch' : ' · có thể trùng lịch'
+  }
+  const clashTags = (kind: string, resource?: string) => clashesOf(kind, resource).map((c) => (
+    <div key={c.departure_id} style={{ marginTop: 4 }}>
+      <Link to={`/operations/${c.departure_id}`}>
+        <Tag color={c.level === 'overlap' ? 'red' : 'gold'} style={{ whiteSpace: 'normal' }}>
+          {c.level === 'overlap' ? 'Trùng lịch' : 'Có thể trùng lịch'}: {clashText(c)}
+        </Tag>
+      </Link>
+    </div>
+  ))
   const act = useMutation({
     mutationFn: ({ fn, args }: { fn: string; args: Row }) => rpcOk(fn, args),
     onSuccess: onChange,
@@ -181,6 +202,7 @@ function Assignments({ departure, onChange }: { departure: string; onChange: () 
           <List.Item>
             <div style={{ width: '100%' }}>
               <div><b>{a.guides?.full_name}</b> <span className="muted">{a.guides?.phone}</span></div>
+              {clashTags('guide', a.guide_id)}
               <Space size={4} style={{ marginTop: 4 }} wrap>
                 {ack('guide', a, 'notified')}{ack('guide', a, 'confirmed')}
                 {manage && <Button size="small" danger type="text" onClick={() => act.mutate({ fn: 'unassign_guide', args: { p_assignment: a.id } })}>Gỡ</Button>}
@@ -189,7 +211,7 @@ function Assignments({ departure, onChange }: { departure: string; onChange: () 
           </List.Item>
         )} />
         {manage && <Select style={{ width: '100%', marginTop: 8 }} placeholder="Thêm hướng dẫn viên" value={null as unknown as string} showSearch optionFilterProp="label"
-          options={(resources.data?.guides ?? []).map((g) => ({ value: g.id, label: `${g.full_name}${g.languages?.length ? ` (${g.languages.join(', ')})` : ''}` }))}
+          options={(resources.data?.guides ?? []).map((g) => ({ value: g.id, label: `${g.full_name}${g.languages?.length ? ` (${g.languages.join(', ')})` : ''}${optionSuffix('guide', g.id)}` }))}
           onChange={(v: string) => act.mutate({ fn: 'assign_guide', args: { p_departure: departure, p_guide: v, p_role: 'lead' } })} />}
       </Card>
       <Card size="small" title="Xe và tài xế">
@@ -198,6 +220,7 @@ function Assignments({ departure, onChange }: { departure: string; onChange: () 
             <div style={{ width: '100%' }}>
               <div><b>{a.vehicles?.name}</b> {a.vehicles?.plate} · {a.vehicles?.seats} chỗ</div>
               <div className="muted">{a.driver_name} {a.driver_phone}</div>
+              {clashTags('vehicle', a.vehicle_id)}
               <Space size={4} style={{ marginTop: 4 }} wrap>
                 {ack('vehicle', a, 'notified')}{ack('vehicle', a, 'confirmed')}
                 {manage && <Button size="small" danger type="text" onClick={() => act.mutate({ fn: 'unassign_vehicle', args: { p_assignment: a.id } })}>Gỡ</Button>}
@@ -206,7 +229,7 @@ function Assignments({ departure, onChange }: { departure: string; onChange: () 
           </List.Item>
         )} />
         {manage && <Select style={{ width: '100%', marginTop: 8 }} placeholder="Thêm xe" value={null as unknown as string} showSearch optionFilterProp="label"
-          options={(resources.data?.vehicles ?? []).map((v) => ({ value: v.id, label: `${v.name} ${v.plate ?? ''} · ${v.seats} chỗ` }))}
+          options={(resources.data?.vehicles ?? []).map((v) => ({ value: v.id, label: `${v.name} ${v.plate ?? ''} · ${v.seats} chỗ${optionSuffix('vehicle', v.id)}` }))}
           onChange={(v: string) => act.mutate({ fn: 'assign_vehicle', args: { p_departure: departure, p_vehicle: v } })} />}
       </Card>
     </>

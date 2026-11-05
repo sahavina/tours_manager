@@ -16,6 +16,7 @@ const FLAGS: Record<string, { label: string; test: (d: Row) => boolean }> = {
   supplier: { label: 'Chưa xác nhận nhà cung cấp', test: (d) => d.supplier_unconfirmed },
   changed: { label: 'Có thay đổi sau phân công', test: (d) => d.changed_after_assignment > 0 },
   contact: { label: 'Cần liên hệ khách', test: (d) => d.needs_contact > 0 },
+  clash: { label: 'Trùng lịch HDV hoặc xe', test: (d) => d.guide_clash > 0 || d.vehicle_clash > 0 || d.possible_clash > 0 },
 }
 
 export function OperationsBoardPage() {
@@ -58,6 +59,9 @@ export function OperationsBoardPage() {
               { title: 'Chỗ xe', align: 'right', render: (_, d) => d.vehicles > 0 ? <span style={{ color: d.vehicle_over ? '#b91c1c' : undefined }}>{d.vehicle_seats}</span> : '' },
               { title: 'Việc cần làm', render: (_, d) => {
                 const tags = [
+                  d.guide_clash > 0 && <Tag key="gc" color="red">Trùng lịch HDV</Tag>,
+                  d.vehicle_clash > 0 && <Tag key="vc" color="red">Trùng lịch xe</Tag>,
+                  d.possible_clash > 0 && <Tag key="pc" color="gold">Có thể trùng lịch</Tag>,
                   d.missing_guide && <Tag key="g" color="orange">Thiếu HDV</Tag>,
                   d.missing_vehicle && <Tag key="v" color="orange">Thiếu xe</Tag>,
                   d.vehicle_over && <Tag key="o" color="red">Khách vượt chỗ xe</Tag>,

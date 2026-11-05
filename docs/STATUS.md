@@ -85,6 +85,12 @@ Nút "Xếp booking đang chờ" ở màn Booking và sau khi nhập file: xem t
 
 Màn nhập chặn nút tiếp tục khi file nhận diện được là báo cáo GetYourGuide hoặc Viator mà tài khoản đã chọn thuộc kênh khác. CSV ánh xạ cột tay không nhận diện được kênh nên không được chặn. Nút xuất danh sách chuyến đã được bấm thử, file có hai cột "Nguồn bán" và "Mã kênh".
 
+### Cảnh báo trùng lịch HDV và xe
+
+Danh sách chọn, chi tiết chuyến và bảng Điều hành báo khi HDV hoặc xe đang ở chuyến khác chồng giờ. Hệ thống chỉ cảnh báo, không chặn, và chưa tính thời gian di chuyển giữa hai chuyến. Thời lượng lấy theo gói, rồi tới tour; thiếu thời lượng mà cùng ngày thì báo "Có thể trùng lịch". Test database phủ các nhánh, và đã thử trên trình duyệt với HDV ở doanh nghiệp demo rồi gỡ ra. Với xe, nhánh này mới được kiểm bằng test.
+
+Hanoi Jeep đã có thời lượng cho 4 gói ghi rõ 2 tiếng hoặc 4 tiếng. Gói City và Discovery chưa rõ thời lượng, nên chỉ báo "Có thể trùng lịch". Hanoi Jeep cũng chưa khai báo HDV và xe.
+
 ## Chưa kiểm chứng
 
 | Hạng mục | Vì sao |

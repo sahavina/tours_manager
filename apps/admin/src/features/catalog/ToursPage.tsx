@@ -18,7 +18,7 @@ function Options({ tourId }: { tourId?: string }) {
   })
   return (
     <CrudPage bare title="Gói dịch vụ" table="tour_options" queryKey="tour_options" managePerm="catalog.manage" softDelete order="code"
-      select="id, tour_id, code, name, language, has_transfer, is_private, cutoff_minutes, ops_policy, is_active, price_rules, capacity_rules, tours(name)"
+      select="id, tour_id, code, name, language, has_transfer, is_private, duration_minutes, cutoff_minutes, ops_policy, is_active, price_rules, capacity_rules, tours(name)"
       search={(q) => `code.ilike.%${q}%,name.ilike.%${q}%`}
       extra={<Select allowClear placeholder="Lọc theo tour" style={{ minWidth: 200 }} value={selected} onChange={setSelected} options={(tours.data ?? []).map((t) => ({ value: t.id, label: t.name }))} />}
       columns={[
@@ -28,6 +28,7 @@ function Options({ tourId }: { tourId?: string }) {
         { title: 'Ngôn ngữ', dataIndex: 'language' },
         { title: 'Đưa đón', render: (_, r) => (r.has_transfer ? <Tag color="cyan">Có đưa đón</Tag> : 'Không') },
         { title: 'Loại', render: (_, r) => (r.is_private ? 'Tour riêng' : 'Tour ghép') },
+        { title: 'Thời lượng', render: (_, r) => (r.duration_minutes ? `${r.duration_minutes} phút` : <span className="muted">Theo tour</span>) },
         { title: 'Hạn nhận khách', render: (_, r) => (r.cutoff_minutes ? `Trước ${r.cutoff_minutes} phút` : 'Đến giờ chạy') },
         { title: 'Trạng thái', render: (_, r) => <ActiveTag value={r.is_active} /> },
       ]}
@@ -39,6 +40,7 @@ function Options({ tourId }: { tourId?: string }) {
         { name: 'language', label: 'Ngôn ngữ', type: 'select', options: LANG, defaultValue: 'en' },
         { name: 'has_transfer', label: 'Có đưa đón', type: 'switch', defaultValue: false },
         { name: 'is_private', label: 'Tour riêng', type: 'switch', defaultValue: false },
+        { name: 'duration_minutes', label: 'Thời lượng (phút, bỏ trống thì dùng của tour)', type: 'number', min: 1 },
         { name: 'cutoff_minutes', label: 'Hạn chót nhận khách (phút trước giờ chạy)', type: 'number', min: 0, defaultValue: 0 },
         { name: 'ops_policy', label: 'Chính sách vận hành', type: 'textarea' },
         { name: 'is_active', label: 'Đang hoạt động', type: 'switch', defaultValue: true },
