@@ -67,6 +67,7 @@ Xóa mềm bằng `deleted_at`. RLS chặn UPDATE là khớp 0 dòng, không bá
 |---|---|---|
 | `ops_board(p_org, p_from, p_to)` | `ops.read` | |
 | `departure_manifest(p_departure)` | `ops.read` hoặc `departure.read` | |
+| `place_waiting_bookings(p_org, p_dry_run, p_create_capacity)` | `ops.manage`, tạo chuyến cần thêm `departure.manage` | Xếp hàng loạt booking đã ghép mã đang chờ chuyến |
 | `assign_guide`, `unassign_guide` | `ops.manage` | |
 | `assign_vehicle`, `unassign_vehicle` | `ops.manage` | `vehicle_not_found`, `has_allocations` |
 | `allocate_passengers(p_assignment, p_item)` | `ops.manage` | `vehicle_full`, `different_departure`, `no_committed_seats` |

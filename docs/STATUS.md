@@ -79,6 +79,12 @@ Hai kênh đã được nhập lại vào một doanh nghiệp local chung: 33 b
 
 Màn hình chuyến đã hiện số booking, kênh và tour riêng. Số liệu được kiểm bằng test và trên trình duyệt với dữ liệu thật. Nhãn "Ghép 2 kênh" và cảnh báo "Tour riêng bị ghép" được xem trên một chuyến demo chỉnh tạm rồi trả lại, vì dữ liệu thật chưa có trường hợp này. Hệ thống chỉ cảnh báo, chưa chặn booking thứ hai vào tour riêng, và cổng số chỗ cho kênh vẫn dùng số còn bán như cũ.
 
+### Xếp booking đang chờ và chặn nhập nhầm kênh
+
+Nút "Xếp booking đang chờ" ở màn Booking và sau khi nhập file: xem trước theo gói, ngày, giờ, rồi xếp vào chuyến đã có, có thể tạo chuyến còn thiếu nếu người dùng nhập sức chứa. Test database phủ các nhánh: đủ chỗ, không đủ chỗ, tour riêng, booking đã hủy, chưa ghép mã, ngày đã qua và thiếu quyền. Trên trình duyệt đã chạy nhánh tạo chuyến với một booking demo chỉnh tạm rồi trả lại. Việc xếp này chỉ chạy khi người dùng bấm, đường nhận dữ liệu từ kênh vẫn không tự tạo chuyến.
+
+Màn nhập chặn nút tiếp tục khi file nhận diện được là báo cáo GetYourGuide hoặc Viator mà tài khoản đã chọn thuộc kênh khác. CSV ánh xạ cột tay không nhận diện được kênh nên không được chặn. Nút xuất danh sách chuyến đã được bấm thử, file có hai cột "Nguồn bán" và "Mã kênh".
+
 ## Chưa kiểm chứng
 
 | Hạng mục | Vì sao |
@@ -101,7 +107,7 @@ Màn hình chuyến đã hiện số booking, kênh và tour riêng. Số liệu
 - Mời người dùng từ giao diện: tạo tài khoản bằng `scripts/create-user.mjs`.
 - Tự tối ưu tuyến đón: chỉ sắp xếp thủ công, không tuyên bố tối ưu.
 - Giới hạn đăng nhập: dựa vào Supabase Auth khi lên production, chưa cấu hình.
-- Chưa deploy. Chưa commit.
+- Chưa deploy.
 
 ## Vấn đề nhỏ đã biết
 

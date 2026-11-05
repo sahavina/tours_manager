@@ -13,6 +13,7 @@ import {
 import { CONNECTION_COLUMNS, friendlyError, rpc, rpcOk, supabase, unwrap, type Row } from '../../lib/supabase'
 import { downloadText, readLocal, useUrlTable, writeLocal } from '../../lib/use-url-state'
 import { CreateBookingDrawer } from './CreateBookingDrawer'
+import { PlaceWaitingModal } from './PlaceWaitingModal'
 
 const ALL_COLUMNS: Array<{ key: string; title: string; sort?: string; render: (r: Row) => React.ReactNode }> = [
   { key: 'code', title: 'Mã nội bộ', sort: 'code', render: (r) => <Link to={`/bookings/${r.id}`}>{r.code}</Link> },
@@ -44,6 +45,7 @@ export function BookingListPage() {
   const [search, setSearch] = useState(f.q ?? '')
   const [selected, setSelected] = useState<string[]>([])
   const [creating, setCreating] = useState(f.new === '1')
+  const [placing, setPlacing] = useState(false)
 
   useEffect(() => { setSearch(f.q ?? '') }, [f.q])
   useEffect(() => {
@@ -183,6 +185,7 @@ export function BookingListPage() {
               onChange={(v) => { const next = v as string[]; setCols(next); writeLocal('tourhub.bookingCols', next) }} />
           }><Button icon={<SettingOutlined />}>Cột</Button></Popover>
           <Can perm="booking.export"><Button icon={<DownloadOutlined />} loading={exportCsv.isPending} onClick={() => exportCsv.mutate()}>Xuất CSV</Button></Can>
+          <Can perm="ops.manage"><Button onClick={() => setPlacing(true)}>Xếp booking đang chờ</Button></Can>
           <Can perm="booking.manage"><Button type="primary" icon={<PlusOutlined />} onClick={() => setCreating(true)}>Tạo booking</Button></Can>
         </>
       } />
@@ -242,6 +245,7 @@ export function BookingListPage() {
         )}
       </Card>
       {creating && <CreateBookingDrawer onClose={() => setCreating(false)} />}
+      {placing && <PlaceWaitingModal onClose={() => setPlacing(false)} />}
     </>
   )
 }

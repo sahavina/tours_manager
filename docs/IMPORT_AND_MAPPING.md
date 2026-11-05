@@ -86,7 +86,9 @@ Tải ở cổng nhà cung cấp: **Performance → Booking details**, chọn ng
 
 ### Ghép khách giữa các kênh
 
-Khách vào chung chuyến khi các kênh cùng nằm trong một doanh nghiệp và mã của chúng được ghép vào cùng một gói nội bộ, cùng ngày và giờ. Chọn đúng tài khoản kênh khi nhập: màn nhập chưa kiểm tra file có khớp với kênh đã chọn không.
+Khách vào chung chuyến khi các kênh cùng nằm trong một doanh nghiệp và mã của chúng được ghép vào cùng một gói nội bộ, cùng ngày và giờ. Màn nhập chặn khi báo cáo GetYourGuide hoặc Viator được chọn nhầm sang tài khoản kênh khác. CSV ánh xạ cột tay không nhận diện được kênh, nên vẫn phải tự chọn đúng tài khoản.
+
+Booking đã ghép mã nhưng chưa có chuyến nằm ở hàng chờ. Dùng nút "Xếp booking đang chờ" để xếp hàng loạt và tạo các chuyến còn thiếu. Tour riêng không được tự gộp: mỗi chuyến chỉ nhận booking đầu tiên, các booking còn lại cần xếp tay.
 
 Chuyến gắn với gói chỉ nhận gói đó, nên gói ghép 2 tiếng và 4 tiếng không lẫn xe. Hệ thống chưa chặn hai booking tour riêng trùng ngày giờ vào cùng một chuyến, chỉ cảnh báo "Tour riêng bị ghép". Cảnh báo dựa vào công tắc "Tour riêng" của gói, nên phải bật công tắc này khi tạo gói riêng.
 

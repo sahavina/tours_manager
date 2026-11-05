@@ -9,8 +9,11 @@ import { ColumnMapper, CsvDropzone, type LoadedFile } from '../../components/Csv
 import { fmtDateTime, NoData, PageHead } from '../../components/common'
 import { CONNECTION_COLUMNS, rpcOk, supabase, unwrap, type Row } from '../../lib/supabase'
 import { downloadText } from '../../lib/use-url-state'
+import { PlaceWaitingModal } from '../bookings/PlaceWaitingModal'
 
 const PRESET_LABEL = { gyg: 'báo cáo booking GetYourGuide', viator: 'báo cáo booking Viator' }
+
+const PRESET_CHANNEL = { gyg: 'getyourguide', viator: 'viator' }
 
 const CLASS_LABEL: Record<string, { text: string; color: string }> = {
   create: { text: 'Tạo mới', color: 'green' },
@@ -20,7 +23,7 @@ const CLASS_LABEL: Record<string, { text: string; color: string }> = {
 }
 
 export function ImportPage() {
-  const { orgId, org } = useAuth()
+  const { orgId, org, can } = useAuth()
   const { message } = App.useApp()
   const qc = useQueryClient()
   const [step, setStep] = useState(0)
@@ -29,6 +32,7 @@ export function ImportPage() {
   const [map, setMap] = useState<ColumnMap>({})
   const [job, setJob] = useState<string | null>(null)
   const [result, setResult] = useState<Row | null>(null)
+  const [placing, setPlacing] = useState(false)
 
   const connections = useQuery({
     queryKey: ['connections-lite', orgId],
@@ -79,7 +83,11 @@ export function ImportPage() {
     onError: (e: Error) => message.error(e.message),
   })
 
-  const reset = () => { setStep(0); setFile(null); setMap({}); setJob(null); setResult(null) }
+  // Nhập nhầm kênh sẽ gán sai nguồn cho booking, và sửa lại rất khó vì mã booking gắn với tài khoản kênh.
+  const presetChannel = file?.preset ? PRESET_CHANNEL[file.preset] : undefined
+  const pickedChannel = connections.data?.find((c) => c.id === connection)?.channel
+  const wrongChannel = Boolean(presetChannel && pickedChannel && presetChannel !== pickedChannel)
+  const reset = () => { setStep(0); setFile(null); setMap({}); setJob(null); setResult(null); setPlacing(false) }
   const errorRows = (rows.data ?? []).filter((r) => (r.errors as string[]).length > 0)
   const downloadErrors = () => downloadText(`loi-nhap-${file?.name ?? 'file'}`, toCsv(errorRows.map((r) => ({ Dòng: r.row_no, Lỗi: (r.errors as string[]).join('; '), ...r.raw }))))
 
@@ -99,8 +107,9 @@ export function ImportPage() {
             <div>Tài khoản kênh của file này</div>
             <Select style={{ width: '100%' }} placeholder="Chọn tài khoản kênh" value={connection} onChange={setConnection}
               options={(connections.data ?? []).map((c) => ({ value: c.id, label: `${CHANNEL[c.channel] ?? c.channel} · ${c.account_name}` }))} />
+            {wrongChannel && <Alert type="error" showIcon message={`File này là ${PRESET_LABEL[file!.preset!]}, nhưng tài khoản đã chọn thuộc ${CHANNEL[pickedChannel] ?? pickedChannel}. Hãy chọn tài khoản ${CHANNEL[presetChannel!]}.`} />}
             <p className="muted">Mã booking chỉ duy nhất trong một tài khoản, nên nhập lại cùng file vào đúng tài khoản không tạo trùng.</p>
-            <Space><Button onClick={reset}>Quay lại</Button><Button type="primary" disabled={!connection} loading={preview.isPending} onClick={() => (file?.preset ? preview.mutate() : setStep(2))}>{file?.preset ? 'Kiểm tra và xem trước' : 'Tiếp tục'}</Button></Space>
+            <Space><Button onClick={reset}>Quay lại</Button><Button type="primary" disabled={!connection || wrongChannel} loading={preview.isPending} onClick={() => (file?.preset ? preview.mutate() : setStep(2))}>{file?.preset ? 'Kiểm tra và xem trước' : 'Tiếp tục'}</Button></Space>
           </Space>
         )}
 
@@ -143,12 +152,14 @@ export function ImportPage() {
         {step === 4 && result && (
           <Result status="success" title="Đã nhập xong" subTitle={`Tạo ${result.created}, cập nhật ${result.updated}. ${result.queued ? `${result.queued} booking vào hàng chờ do chưa ghép mã hoặc chưa có chuyến.` : ''}`}
             extra={[
-              <Link key="b" to="/bookings"><Button type="primary">Xem booking</Button></Link>,
+              result.queued > 0 && can('ops.manage') && <Button key="p" type="primary" onClick={() => setPlacing(true)}>Xếp booking đang chờ</Button>,
+              <Link key="b" to="/bookings"><Button type={result.queued > 0 && can('ops.manage') ? 'default' : 'primary'}>Xem booking</Button></Link>,
               errorRows.length > 0 && <Button key="e" icon={<DownloadOutlined />} onClick={downloadErrors}>Tải danh sách lỗi</Button>,
               <Button key="n" onClick={reset}>Nhập file khác</Button>,
             ]} />
         )}
       </Card>
+      {placing && <PlaceWaitingModal onClose={() => setPlacing(false)} />}
 
       <Card title="Lịch sử nhập" size="small">
         <Table rowKey="id" size="small" loading={history.isLoading} dataSource={history.data} pagination={false} scroll={{ x: 'max-content' }}
