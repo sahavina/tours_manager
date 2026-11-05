@@ -193,6 +193,33 @@ describe('đổi chuyến', () => {
     expect((await seats(to)).committed).toBe(2)
   })
 
+  it('xếp lần đầu vào đúng ngày giờ khách đặt thì không báo cần xử lý trên kênh và gỡ cờ chờ xếp', async () => {
+    const r = await rpc(service, 'ingest_channel_event', w.connection, bookingEvent('FP-1', '2030-06-05'))
+    const [item] = await owner<{ id: string; departure_id: string | null }>(`select id, departure_id from public.booking_items where booking_id = $1`, [r.booking_id])
+    expect(item!.departure_id).toBeNull()
+    await owner(`update public.bookings set needs_action = true, action_reason = 'Đã ghép mã, chưa xếp được chuyến' where id = $1`, [r.booking_id])
+    const dep = await w.departure('2030-06-05', 5)
+
+    const ok = await rpc(user(w.operator), 'move_booking_item', item!.id, dep)
+    expect(ok).toMatchObject({ ok: true, channel_request_status: 'not_applicable' })
+    expect((await seats(dep)).committed).toBe(2)
+    const [b] = await owner<{ needs_action: boolean; action_reason: string | null }>(`select needs_action, action_reason from public.bookings where id = $1`, [r.booking_id])
+    expect(b).toMatchObject({ needs_action: false, action_reason: null })
+    const [c] = await owner<{ change_type: string }>(`select change_type from public.booking_changes where booking_id = $1 and channel_request_status = 'not_applicable' order by created_at desc limit 1`, [r.booking_id])
+    expect(c!.change_type).toBe('placed')
+  })
+
+  it('xếp booking đang chờ sang ngày khác vẫn phải xử lý tay trên kênh', async () => {
+    const r = await rpc(service, 'ingest_channel_event', w.connection, bookingEvent('FP-2', '2030-06-06'))
+    const [item] = await owner<{ id: string }>(`select id from public.booking_items where booking_id = $1`, [r.booking_id])
+    await owner(`update public.bookings set needs_action = true, action_reason = 'Đánh dấu thủ công' where id = $1`, [r.booking_id])
+    const dep = await w.departure('2030-06-07', 5)
+    const ok = await rpc(user(w.operator), 'move_booking_item', item!.id, dep)
+    expect(ok.channel_request_status).toBe('manual_required')
+    const [b] = await owner<{ needs_action: boolean }>(`select needs_action from public.bookings where id = $1`, [r.booking_id])
+    expect(b!.needs_action).toBe(true)
+  })
+
   it('chuyến đích hết chỗ thì giữ nguyên chỗ nguồn', async () => {
     const from = await w.departure('2030-06-03', 5)
     const to = await w.departure('2030-06-04', 1)

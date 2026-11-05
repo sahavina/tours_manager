@@ -1,7 +1,7 @@
 import { DownloadOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Alert, App, Button, Card, Result, Select, Space, Statistic, Steps, Table, Tag } from 'antd'
-import { BOOKING_IMPORT_FIELDS, CHANNEL, normalizeBookingRow, suggestColumnMap, toCsv, type ColumnMap } from '@tours/core'
+import { BOOKING_IMPORT_FIELDS, CHANNEL, normalizeBookingRow, normalizeGygRow, suggestColumnMap, toCsv, type ColumnMap } from '@tours/core'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
@@ -53,7 +53,7 @@ export function ImportPage() {
   const preview = useMutation({
     mutationFn: async () => {
       const payload = file!.csv.rows.map((row, i) => {
-        const n = normalizeBookingRow(row, map, org?.default_timezone)
+        const n = file!.preset === 'gyg' ? normalizeGygRow(row, org?.default_timezone) : normalizeBookingRow(row, map, org?.default_timezone)
         return { row_no: i + 2, raw: row, normalized: n.normalized, errors: n.errors }
       })
       return rpcOk('import_preview', {
@@ -87,16 +87,16 @@ export function ImportPage() {
           { title: 'Tải file' }, { title: 'Chọn kênh' }, { title: 'Ánh xạ cột' }, { title: 'Xem trước' }, { title: 'Kết quả' },
         ]} />
 
-        {step === 0 && <CsvDropzone onLoaded={(f) => { setFile(f); setMap(suggestColumnMap(f.csv.headers)); setStep(1) }} />}
+        {step === 0 && <CsvDropzone allowGygXlsx onLoaded={(f) => { setFile(f); setMap(f.preset ? {} : suggestColumnMap(f.csv.headers)); setStep(1) }} />}
 
         {step === 1 && (
           <Space direction="vertical" style={{ width: '100%', maxWidth: 480 }}>
-            <Alert type="info" showIcon message={`${file?.name}: ${file?.csv.rows.length} dòng, ${file?.csv.headers.length} cột. Loại dữ liệu: booking.`} />
+            <Alert type="info" showIcon message={`${file?.name}: ${file?.csv.rows.length} dòng, ${file?.csv.headers.length} cột. Loại dữ liệu: ${file?.preset === 'gyg' ? 'báo cáo booking GetYourGuide, không cần ánh xạ cột' : 'booking'}.`} />
             <div>Tài khoản kênh của file này</div>
             <Select style={{ width: '100%' }} placeholder="Chọn tài khoản kênh" value={connection} onChange={setConnection}
               options={(connections.data ?? []).map((c) => ({ value: c.id, label: `${CHANNEL[c.channel] ?? c.channel} · ${c.account_name}` }))} />
             <p className="muted">Mã booking chỉ duy nhất trong một tài khoản, nên nhập lại cùng file vào đúng tài khoản không tạo trùng.</p>
-            <Space><Button onClick={reset}>Quay lại</Button><Button type="primary" disabled={!connection} onClick={() => setStep(2)}>Tiếp tục</Button></Space>
+            <Space><Button onClick={reset}>Quay lại</Button><Button type="primary" disabled={!connection} loading={preview.isPending} onClick={() => (file?.preset ? preview.mutate() : setStep(2))}>{file?.preset ? 'Kiểm tra và xem trước' : 'Tiếp tục'}</Button></Space>
           </Space>
         )}
 

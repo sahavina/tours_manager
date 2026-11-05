@@ -8,7 +8,7 @@ import { useAuth } from '../../auth/AuthProvider'
 import {
   BookingStatusTag, Can, ChannelLabel, ErrorState, fmtDateTime, Loading, LocalTime, MoneyText, NoData, OpsStatusTag, PageHead, ReconTag, SyncStatusTag,
 } from '../../components/common'
-import { rpcOk, supabase, unwrap, type Row } from '../../lib/supabase'
+import { rpc, rpcOk, supabase, unwrap, type Row } from '../../lib/supabase'
 
 function useInvalidate(id: string) {
   const qc = useQueryClient()
@@ -118,8 +118,8 @@ function Overview({ b, onUpdate }: { b: Row; onUpdate: (p: Row) => void }) {
   })
   const members = useQuery({
     queryKey: ['members-lite', orgId],
-    enabled: can('member.manage'),
-    queryFn: async () => (await import('../../lib/supabase')).rpc<Row[]>('member_list', { p_org: orgId }),
+    enabled: can('booking.manage'),
+    queryFn: () => rpc<Row[]>('member_assignable', { p_org: orgId }),
   })
   return (
     <>
@@ -133,9 +133,9 @@ function Overview({ b, onUpdate }: { b: Row; onUpdate: (p: Row) => void }) {
         <Descriptions.Item label="Giá trị bán"><MoneyText amount={b.gross_amount} currency={b.currency} /></Descriptions.Item>
         <Descriptions.Item label="Cập nhật gần nhất">{fmtDateTime(b.updated_at)}</Descriptions.Item>
         <Descriptions.Item label="Người phụ trách">
-          {can('member.manage') ? (
+          {can('booking.manage') ? (
             <Select size="small" style={{ minWidth: 200 }} value={b.owner_id} allowClear placeholder="Chưa gán"
-              options={(members.data ?? []).filter((m) => m.is_active && m.role_key !== 'guide').map((m) => ({ value: m.user_id, label: m.full_name ?? m.email }))}
+              options={(members.data ?? []).map((m) => ({ value: m.user_id, label: m.name }))}
               onChange={(v) => onUpdate({ owner_id: v ?? null })} />
           ) : (b.owner_name ?? 'Chưa gán')}
         </Descriptions.Item>

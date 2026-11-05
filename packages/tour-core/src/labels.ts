@@ -94,6 +94,7 @@ const RESULT_CODES: Record<string, string> = {
   option_not_found: 'Không tìm thấy gói dịch vụ.',
   tour_not_found: 'Không tìm thấy tour.',
   product_not_linked: 'Sản phẩm chưa được ghép với gói nội bộ.',
+  product_removed: 'Sản phẩm đã gỡ khỏi kênh, không tạo chuyến từ lịch cũ.',
   not_mock: 'Thao tác này chỉ dùng cho kết nối mô phỏng.',
   stale_ignored: 'Sự kiện cũ hơn dữ liệu hiện có nên được bỏ qua.',
 }

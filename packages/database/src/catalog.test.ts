@@ -168,6 +168,24 @@ describe('lịch và số chỗ', () => {
   })
 })
 
+describe('sản phẩm đã gỡ khỏi kênh', () => {
+  it('giữ lịch cũ làm lịch sử nhưng không cho tạo chuyến; xuất hiện lại thì dùng được', async () => {
+    await rpc(service, 'channel_catalog_ingest', w.connection, [P({ product_code: 'GO1' })])
+    const p = await product('GO1')
+    await rpc(user(w.ownerId), 'channel_catalog_link', p.id, w.option)
+    await rpc(service, 'channel_availability_ingest', w.connection, [{ product_code: 'GO1', local_date: '2032-04-01', local_time: '10:00', vacancies: 4 }])
+    await owner(`update public.channel_products set removed_at = now() where id = $1`, [p.id])
+
+    const blocked = await rpc(user(w.ownerId), 'channel_availability_create_departures', p.id, '2032-04-01', '2032-04-01', 10)
+    expect(blocked).toMatchObject({ ok: false, code: 'product_removed' })
+    expect(await owner(`select 1 from public.departures where tour_option_id = $1 and local_date = '2032-04-01' and local_time = '10:00'`, [w.option])).toHaveLength(0)
+    expect(await rpc(user(w.ownerId), 'channel_availability_compare', p.id, '2032-04-01', '2032-04-01')).toHaveLength(1)
+
+    await rpc(service, 'channel_catalog_ingest', w.connection, [P({ product_code: 'GO1' })])
+    expect((await rpc(user(w.ownerId), 'channel_availability_create_departures', p.id, '2032-04-01', '2032-04-01', 10)).created).toBe(1)
+  })
+})
+
 describe('mô phỏng không giả làm thật', () => {
   it('lượt mô phỏng được ghi nhãn simulated và không tạo mốc liên lạc thật', async () => {
     await rpc(service, 'channel_catalog_ingest', w.connection, [P({ product_code: 'M1' })])

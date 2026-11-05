@@ -166,8 +166,8 @@ export function BookingListPage() {
 
   const members = useQuery({
     queryKey: ['members-lite', orgId],
-    enabled: can('member.manage'),
-    queryFn: () => rpc<Row[]>('member_list', { p_org: orgId }),
+    enabled: can('booking.manage'),
+    queryFn: () => rpc<Row[]>('member_assignable', { p_org: orgId }),
   })
 
   const statusOptions = useMemo(() => Object.entries(BOOKING_STATUS).map(([value, label]) => ({ value, label })), [])
@@ -219,9 +219,9 @@ export function BookingListPage() {
             <span>Đã chọn {selected.length} booking</span>
             <Button size="small" onClick={() => bulk.mutate({ needs_action: true, action_reason: 'Đánh dấu thủ công' })}>Đánh dấu cần xử lý</Button>
             <Button size="small" onClick={() => bulk.mutate({ needs_action: false, action_reason: null })}>Bỏ đánh dấu</Button>
-            {can('member.manage') && (
+            {can('booking.manage') && (
               <Select size="small" placeholder="Gán người phụ trách" style={{ width: 200 }}
-                options={(members.data ?? []).filter((m) => m.is_active && m.role_key !== 'guide').map((m) => ({ value: m.user_id, label: m.full_name ?? m.email }))}
+                options={(members.data ?? []).map((m) => ({ value: m.user_id, label: m.name }))}
                 onChange={(v: string) => bulk.mutate({ owner_id: v })} />
             )}
             <span className="muted">Chỉ đổi dữ liệu nội bộ, không gửi sang kênh.</span>

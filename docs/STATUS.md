@@ -33,6 +33,8 @@ Hướng dẫn viên trên màn 375 px: chỉ thấy chuyến được giao, đi
 
 Chỉ xem: menu ẩn mục nhạy cảm, không có nút ghi, vào thẳng link báo không có quyền.
 
+Quản trị viên, Nhân viên booking, Điều hành, Kế toán: đã đăng nhập từng vai trò, đối chiếu menu, nút và tab với ma trận quyền, không có lỗi console. Đã thử ghi: ghi chú booking, ghi nhận sự cố.
+
 Ma trận quyền của cả 7 vai trò kiểm tra qua HTTP: đúng đặc tả §5. Hướng dẫn viên đọc bảng nhạy cảm trả rỗng, đọc `credential_ref` và xuất CSV trả 403.
 
 ### Lỗi chỉ lộ ra khi chạy thật, đã sửa
@@ -49,12 +51,23 @@ Ma trận quyền của cả 7 vai trò kiểm tra qua HTTP: đúng đặc tả 
 | Khối phân công hiện với người không có `ops.read` | Kế toán thấy "Chưa phân công" dù chuyến đã phân công |
 | `pnpm test` ở thư mục gốc không chạy | Tưởng đã test mà không |
 | Seed lần hai lỗi | Không tái tạo được dữ liệu |
+| Tab sự cố hiện với người không có `ops.read` | Kế toán thấy "Chưa có sự cố" dù đã có sự cố |
+| Nhân viên booking không gán được người phụ trách | Thiếu chức năng §7.2, vì danh sách thành viên đòi `member.manage` |
+| Sản phẩm đã gỡ vẫn tạo được chuyến từ lịch cũ | Tạo chuyến theo dữ liệu đã lỗi thời |
 
 ### Đồng bộ danh mục kênh (mô phỏng)
 
 Test trên Postgres thật: nhận danh mục lặp không trùng, đổi nội dung không ghi đè tour (gỡ chốt thì test đỏ), duyệt từng trường, mã trùng không để lại tour mồ côi, ảnh chụp lịch không đổi sức chứa, phân quyền và tách doanh nghiệp, người dùng không đẩy được danh mục vào kết nối thật. Worker tự đồng bộ theo chu kỳ.
 
-Trên trình duyệt đã thử: xem danh sách, xem lịch, tạo tour từ sản phẩm, giả lập kênh đổi danh mục, mở màn duyệt thay đổi. Chưa bấm trên giao diện: áp dụng thay đổi, ghép, bỏ qua, tạo chuyến từ lịch (đã có test ở tầng RPC).
+Trên trình duyệt đã thử đủ luồng: xem danh sách và lịch, tạo tour từ sản phẩm, ghép với gói có sẵn, bỏ qua, giả lập kênh đổi danh mục, duyệt áp dụng từng trường, tạo chuyến từ lịch, cảnh báo với sản phẩm đã gỡ.
+
+### Nhập báo cáo booking GetYourGuide
+
+Đã nhập file thật tải từ cổng nhà cung cấp qua màn **Nhập dữ liệu**: 15 booking từ 9 sheet, không dòng lỗi, nhập lại không tạo trùng, ngày giờ và số khách đối chiếu khớp với cổng ở 2 booking. Parser được test bằng dữ liệu giả; file và dữ liệu thật chỉ nằm trên máy, không vào Git.
+
+Sau đó đã ghép 5 mã, tạo 12 chuyến và xếp đủ 15 booking trên dữ liệu đó. Sức chứa 4 khách mỗi chuyến do người dùng chọn, đưa đón của 5 gói để "Không" vì file không có thông tin. Tour, gói và chuyến được tạo qua API với quyền owner, không qua form.
+
+Đây là nhập file, không phải đồng bộ: booking đổi hoặc hủy trên cổng không tự cập nhật. Chưa biết báo cáo có chứa booking đã hủy không. Mặc định báo cáo chỉ lấy 15 ngày đi tới, nên booking xa hơn phải chọn thêm khoảng ngày khi tải.
 
 ## Chưa kiểm chứng
 
@@ -65,9 +78,8 @@ Trên trình duyệt đã thử: xem danh sách, xem lịch, tạo tour từ s�
 | `docker compose up` cho worker | Như dòng đầu |
 | Trên điện thoại thật | Chỉ mô phỏng khung 375 px |
 | Đổi chuyến và chia xe bằng giao diện với nhiều người cùng thao tác | Bất biến đã test ở database, giao diện chưa thử đồng thời |
-| Vai trò Quản trị viên, Booking, Điều hành, Kế toán trên giao diện | Quyền đã kiểm tra qua HTTP; giao diện từng màn chưa bấm với từng vai trò |
 | Chế độ không có Redis dưới tải lớn | Chưa đo tải |
-| Sao lưu và phục hồi | Lệnh trong OPERATIONS.md chưa chạy thử |
+| Sao lưu và phục hồi | Lệnh trong OPERATIONS.md chưa chạy thử: gói Postgres đang dùng không kèm `pg_dump` |
 
 ## Chưa làm
 
@@ -75,7 +87,7 @@ Trên trình duyệt đã thử: xem danh sách, xem lịch, tạo tour từ s�
 - **Đồng bộ tour từ Viator chưa lấy được dữ liệu thật**: màn Sản phẩm kênh và worker chạy trên dữ liệu `SIM`. Chưa xác định tài khoản có quyền API gì. Theo tài liệu, Supplier API không có đường kéo số chỗ về.
 - Cổng HTTP nhận yêu cầu từ kênh, nên chưa có rate limit và xác minh khóa cho chiều đó.
 - Chưa quy đổi tiền tệ: mỗi tiền tệ tính riêng, nên không có bảng tỷ giá.
-- XLSX: chỉ có CSV. Nhập file chỉ có loại booking.
+- XLSX: chỉ nhận báo cáo booking của GetYourGuide, còn lại là CSV. Nhập file chỉ có loại booking.
 - Mời người dùng từ giao diện: tạo tài khoản bằng `scripts/create-user.mjs`.
 - Tự tối ưu tuyến đón: chỉ sắp xếp thủ công, không tuyên bố tối ưu.
 - Giới hạn đăng nhập: dựa vào Supabase Auth khi lên production, chưa cấu hình.
@@ -93,6 +105,6 @@ Trên trình duyệt đã thử: xem danh sách, xem lịch, tạo tour từ s�
 
 ## Việc tiếp theo
 
-1. Sửa Docker rồi chạy `pnpm db:start`, để xác nhận trên Supabase thật.
+1. Sửa Docker và giải phóng ổ C (còn khoảng 8 GB) rồi chạy `pnpm db:start`, để xác nhận trên Supabase thật.
 2. Rà soát bảo mật trước khi đưa dữ liệu khách thật vào.
 3. Đăng ký quyền kết nối với từng nền tảng, rồi viết cổng HTTP và connector thật.

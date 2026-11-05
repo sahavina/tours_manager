@@ -49,6 +49,27 @@ BR-1001,VHLBENT,15/01/2030,08:00,2,1,"120,00",USD,Sofitel Metropole
 - Không có giá trị thì để "chưa có dữ liệu", không coi là 0.
 - Nguồn file, người nhập, thời điểm nhập được lưu ở **Lịch sử nhập**.
 
+### Báo cáo booking của GetYourGuide
+
+Kéo thẳng file `.xlsx` tải từ nút **Download bookings** trên cổng nhà cung cấp vào **Nhập dữ liệu**, chọn tài khoản kênh, không cần ánh xạ cột. Hệ thống gộp mọi sheet (mỗi sheet một ngày đi).
+
+| Cột báo cáo | Thành |
+|---|---|
+| `Booking Ref #` | Mã booking |
+| `Date` | Ngày giờ đi, giữ nguyên giờ trong ô |
+| `Product`, phần `[T-...]` | Mã sản phẩm |
+| `Option`, phần trong ngoặc vuông đầu dòng | Mã lựa chọn. Báo cáo không có mã option thật, đổi tên option trên cổng thì phải ghép lại |
+| `Adult`, `Child`, `Infant`... | Nhóm khách |
+| `Price` | Giá trị bán và tiền tệ |
+| `Net Price` | Dự kiến nhận. Phí kênh suy ra bằng `Price - Net Price` khi cùng tiền tệ |
+
+Giới hạn:
+
+- Định dạng suy ra từ một file thật, GetYourGuide không công bố. Thiếu cột thì file bị từ chối.
+- Mọi dòng được coi là đã xác nhận, vì báo cáo không có cột trạng thái. **Chưa biết báo cáo có chứa booking đã hủy hay không**: cần đối chiếu với cổng. Booking hủy trên cổng sau khi nhập không tự cập nhật.
+- `Purchase Date` đọc theo giờ Việt Nam, nên chỉ đúng với doanh nghiệp ở múi giờ này.
+- Nhập lại cùng file không tạo trùng. Giá thay đổi thì dòng thành Cập nhật.
+
 ## Nhập bảng đối soát
 
 Vào **Tài chính và đối soát > Đối soát > Nhập bảng thanh toán**. Cần ánh xạ mã booking, tiền tệ, số thực nhận.

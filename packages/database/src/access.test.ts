@@ -127,6 +127,21 @@ describe('vai trò', () => {
     expect(await as(user(a.accountant), `select 1 from public.booking_financials where booking_id = $1`, [bookingA])).toHaveLength(1)
   })
 
+  it('nhân viên booking lấy được người để gán phụ trách, chỉ có mã và tên, không gồm hướng dẫn viên', async () => {
+    const list = await rpc(user(a.agent), 'member_assignable', a.org)
+    expect(list.map((m: any) => m.user_id)).toContain(a.agent)
+    expect(list.map((m: any) => m.user_id)).not.toContain(a.guideUser)
+    expect(Object.keys(list[0]).sort()).toEqual(['name', 'user_id'])
+    await expect(rpc(user(a.agent), 'member_list', a.org)).rejects.toThrow(/forbidden/)
+    await expect(rpc(user(a.viewer), 'member_assignable', a.org)).rejects.toThrow(/forbidden/)
+    await expect(rpc(user(b.ownerId), 'member_assignable', a.org)).rejects.toThrow(/forbidden/)
+
+    const r = await rpc(user(a.agent), 'update_booking_internal', bookingA, { owner_id: a.agent })
+    expect(r.ok).toBe(true)
+    const [row] = await owner<any>(`select owner_id from public.bookings where id = $1`, [bookingA])
+    expect(row.owner_id).toBe(a.agent)
+  })
+
   it('chỉ xem không ghi được, kể cả qua RPC', async () => {
     await expect(rpc(user(a.viewer), 'add_booking_note', bookingA, 'x')).rejects.toThrow(/forbidden/)
     // RLS chặn UPDATE bằng cách khớp 0 dòng, không ném lỗi: phải đếm dòng, không dùng toThrow.

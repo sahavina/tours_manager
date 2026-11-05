@@ -183,7 +183,8 @@ function AvailabilityModal({ product, onClose }: { product: Row; onClose: () => 
             } },
           ]} />
       )}
-      {can('departure.manage') && product.tour_option_id && missing > 0 && (
+      {product.removed_at && <Alert type="warning" showIcon style={{ marginTop: 12 }} message="Sản phẩm đã gỡ khỏi kênh: lịch này là dữ liệu cũ, chỉ để tham khảo." />}
+      {can('departure.manage') && product.tour_option_id && !product.removed_at && missing > 0 && (
         <Space wrap style={{ marginTop: 12 }}>
           <span>Tạo {missing} chuyến còn thiếu, sức chứa mỗi chuyến:</span>
           <InputNumber min={0} value={capacity} onChange={setCapacity} placeholder="Bắt buộc" />
@@ -322,7 +323,8 @@ export function CatalogTab() {
               {p.has_changes && <Tag color="orange">Có thay đổi</Tag>}
             </Space> },
             { title: 'Thấy gần nhất', render: (_, p) => <span className="nowrap">{fmtDateTime(p.last_seen_at)}</span> },
-            { title: '', fixed: 'right' as const, render: (_, p) => <Space size={0}>
+            // Độ rộng cố định và cho xuống dòng: không thì cột này che mất các cột khác trên màn hẹp.
+            { title: '', fixed: 'right' as const, width: 180, render: (_, p) => <Space size={0} wrap>
               {p.has_changes && <Button size="small" type="link" onClick={() => setModal({ kind: 'review', product: p })}>Xem thay đổi</Button>}
               {!p.tour_option_id && canCreate && <Button size="small" type="link" onClick={() => setModal({ kind: 'create', product: p })}>Tạo tour và gói</Button>}
               {!p.tour_option_id && manage && <Button size="small" type="link" onClick={() => setModal({ kind: 'link', product: p })}>Ghép</Button>}

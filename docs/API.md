@@ -49,7 +49,7 @@ Xóa mềm bằng `deleted_at`. RLS chặn UPDATE là khớp 0 dòng, không bá
 | `export_bookings(p_org, p_filters)` | `booking.export` | Có ghi nhật ký, tối đa 10.000 dòng |
 | `quick_search(p_org, p_query)` | Theo từng loại | |
 
-**Sửa nội bộ, yêu cầu trên kênh, kết quả từ kênh là ba việc khác nhau.** `move_booking_item` trên booking từ kênh trả `channel_request_status: manual_required`, không báo đã cập nhật sang kênh.
+**Sửa nội bộ, yêu cầu trên kênh, kết quả từ kênh là ba việc khác nhau.** `move_booking_item` trên booking từ kênh trả `channel_request_status: manual_required`, không báo đã cập nhật sang kênh. Ngoại lệ duy nhất: xếp lần đầu một booking đang chờ vào đúng tour, gói, ngày giờ khách đã đặt thì trả `not_applicable`, vì không có gì khác với kênh.
 
 ### Chuyến và sức chứa
 
@@ -129,7 +129,7 @@ Hai hàm `*_ingest` và `channel_mock_bump_catalog` theo cùng luật với mụ
 | `channel_catalog_ignore(p_product, p_ignored)` | `connection.manage` | |
 | `channel_catalog_review(p_product, p_fields)` | `catalog.manage` | Mảng rỗng là giữ bản nội bộ. Trường kênh bỏ trống không xóa dữ liệu nội bộ. `product_not_linked` |
 | `channel_availability_compare(p_product, p_from, p_to)` | `connection.read` và `departure.read` | Chỉ đọc |
-| `channel_availability_create_departures(p_product, p_from, p_to, p_capacity)` | `departure.manage` | Sức chứa bắt buộc. Không đụng chuyến đã có. `product_not_linked`, `invalid_capacity` |
+| `channel_availability_create_departures(p_product, p_from, p_to, p_capacity)` | `departure.manage` | Sức chứa bắt buộc. Không đụng chuyến đã có. `product_not_linked`, `product_removed`, `invalid_capacity` |
 
 ### Nhập file, đối soát, báo cáo
 
@@ -145,7 +145,7 @@ Hai hàm `*_ingest` và `channel_mock_bump_catalog` theo cùng luật với mụ
 
 ### Thành viên, khách hàng, thông báo
 
-`member_list`, `member_upsert` (`member.manage`, mã `user_not_found`, `last_owner`, `cannot_deactivate_self`); `customer_duplicate_suggestions` (`customer.read`); `merge_customers` (`customer.manage`); `notifications_mark_read`; `my_org_context`.
+`member_assignable` (`booking.manage`, chỉ trả mã và tên để gán phụ trách); `member_list`, `member_upsert` (`member.manage`, mã `user_not_found`, `last_owner`, `cannot_deactivate_self`); `customer_duplicate_suggestions` (`customer.read`); `merge_customers` (`customer.manage`); `notifications_mark_read`; `my_org_context`.
 
 ## Worker
 

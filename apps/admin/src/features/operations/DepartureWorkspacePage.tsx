@@ -112,7 +112,8 @@ export function DepartureWorkspacePage() {
           <Card>
             <Tabs activeKey={tab} onChange={(k) => setParams(k === 'pax' ? {} : { tab: k }, { replace: true })} items={[
               { key: 'pax', label: `Khách (${active.length})`, children: <Manifest departure={id} rows={manifest.data} loading={manifest.isLoading} error={manifest.error} /> },
-              { key: 'incidents', label: 'Sự cố', children: <Incidents departure={id} /> },
+              // RLS trả rỗng khi thiếu ops.read: "Chưa có sự cố" sẽ là thông tin sai, nên ẩn hẳn tab.
+              ...(can('ops.read') ? [{ key: 'incidents', label: 'Sự cố', children: <Incidents departure={id} /> }] : []),
               ...(can('finance.read') ? [{ key: 'costs', label: 'Chi phí', children: <Costs departure={id} /> }] : []),
             ]} />
           </Card>

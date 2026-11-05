@@ -61,7 +61,7 @@ Màn hình: **Kết nối kênh > Sản phẩm kênh**.
 | Tạo tour và gói | Người dùng bấm từng sản phẩm, đồng thời tạo ánh xạ đã kiểm tra |
 | Ghép với tour có sẵn | Người dùng chọn gói; booking đang chờ của mã đó tự xếp chuyến |
 | Khi kênh đổi nội dung | Giữ bản nội bộ, gắn cờ "Có thay đổi", người dùng duyệt từng trường |
-| Sản phẩm biến mất khỏi kênh | Đánh dấu "Đã gỡ", không xóa gì ở nội bộ |
+| Sản phẩm biến mất khỏi kênh | Đánh dấu "Đã gỡ", không xóa gì ở nội bộ. Lịch cũ giữ làm lịch sử, không dùng để tạo chuyến |
 | Lịch và số chỗ | Lưu ảnh chụp để đối chiếu, tạo chuyến thiếu khi người dùng nhập sức chứa. Không đổi `inventory_pools` |
 | Cập nhật định kỳ | Worker chạy theo chu kỳ của từng kết nối. Kết nối thật hiện ghi lỗi `needs_connector`, không báo đã đồng bộ |
 
@@ -89,6 +89,34 @@ Câu hỏi nên gửi:
 - `post/v2/mappings/catalog` có mở cho chúng tôi không, tài khoản có một hay nhiều supplier code?
 - Có API nào trả mô tả, thời lượng, ngôn ngữ, giờ chạy của sản phẩm cho chính nhà cung cấp không?
 - Có cách nào lấy booking lịch sử không, hay phải xuất file?
+
+## GetYourGuide: chiều dữ liệu và cách kết nối
+
+Đọc ngày 2026-11-05 từ tài liệu integrator và cổng nhà cung cấp.
+
+**Không có API để kéo sản phẩm, lịch hay booking về.** Mọi thứ ngược chiều: GetYourGuide gọi vào API do nhà cung cấp tự dựng.
+
+| Bên chạy API | Endpoint | Việc |
+|---|---|---|
+| Nhà cung cấp | `GET /1/get-availabilities/` | GetYourGuide hỏi chỗ |
+| Nhà cung cấp | `POST /1/reserve/`, `POST /1/cancel-reservation/` | Giữ và hủy giữ chỗ |
+| Nhà cung cấp | `POST /1/book/`, `POST /1/cancel-booking/` | Đặt và hủy |
+| Nhà cung cấp | `GET /1/suppliers/{supplierId}/products/` | GetYourGuide lấy danh sách để ghép sản phẩm |
+| Nhà cung cấp | `POST /1/notify/` | Báo sản phẩm bị tắt |
+| GetYourGuide | `POST /1/notify-availability-update` | Nhà cung cấp báo chỗ thay đổi, bắt buộc |
+| GetYourGuide | `PATCH /1/products/{GYG-Option-ID}/activate`, `POST /1/redeem-ticket`, `POST /1/redeem-booking`, `/1/deals`, `POST /1/suppliers` | Bật lại sản phẩm, xác nhận vé, ưu đãi |
+
+Base URL phía GetYourGuide: `https://supplier-api.getyourguide.com`. Xác thực HTTP Basic cả hai chiều. Mỗi `productId` ứng với một lựa chọn tour (option), và do nhà cung cấp đặt.
+
+Hệ quả:
+
+- Muốn đồng bộ thật thì phải deploy một cổng HTTP công khai, và hệ thống này thành **nguồn số chỗ** của các sản phẩm đã kết nối.
+- `channel_catalog_ingest` và `channel_availability_ingest` không có nguồn dữ liệu thật từ GetYourGuide. Danh mục phải đi chiều ngược lại: hệ thống trả danh sách của mình để GetYourGuide ghép.
+- Lỗi nghiệp vụ trả HTTP 200 kèm `errorCode`. Trang hủy booking viết `BOOKING_ALREADY_CANCELED`, trang tổng quan viết `BOOKING_ALREADY_CANCELLED`: phải xác nhận bản đúng khi tích hợp.
+
+Tài liệu không nêu: nơi đăng ký quyền, sandbox đầy đủ, quy trình chứng nhận, booking cũ và lịch nhập tay xử lý thế nào sau khi kết nối, cách ngắt kết nối.
+
+Cổng nhà cung cấp không có mục API hay kết nối trong menu, chỉ có liên kết "API Integration" và "Reservation System Integration" ở chân trang. Có nút "Download bookings" ở trang booking, chưa thử định dạng file.
 
 ## Các bước để kết nối thật
 
