@@ -69,6 +69,10 @@ Sau đó đã ghép 5 mã, tạo 12 chuyến và xếp đủ 15 booking trên d�
 
 Đây là nhập file, không phải đồng bộ: booking đổi hoặc hủy trên cổng không tự cập nhật. Chưa biết báo cáo có chứa booking đã hủy không. Mặc định báo cáo chỉ lấy 15 ngày đi tới, nên booking xa hơn phải chọn thêm khoảng ngày khi tải.
 
+### Nhập báo cáo booking Viator
+
+Đã nhập file thật tải từ cổng nhà cung cấp qua màn **Nhập dữ liệu**: 18 booking (12 đang chạy, 6 đã hủy), không dòng lỗi, nhập lại không tạo trùng. Tổng số khách và tiền dự kiến nhận khớp với file; 10 mã hiển thị trên cổng đều có trong file với ngày đi khớp. Parser được test bằng dữ liệu giả; file và dữ liệu thật chỉ nằm trên máy, không vào Git. Danh sách sản phẩm CSV chưa tải được vì khung trình duyệt chặn thao tác tự động. Đã ghép 4 mã với gói nội bộ tạo qua API; sau đó tạo 12 chuyến và xếp đủ 12 booking đang chạy. Sức chứa 12 khách mỗi chuyến do người dùng chọn, đưa đón của 4 gói để "Không".
+
 ## Chưa kiểm chứng
 
 | Hạng mục | Vì sao |
@@ -87,7 +91,7 @@ Sau đó đã ghép 5 mã, tạo 12 chuyến và xếp đủ 15 booking trên d�
 - **Đồng bộ tour từ Viator chưa lấy được dữ liệu thật**: màn Sản phẩm kênh và worker chạy trên dữ liệu `SIM`. Chưa xác định tài khoản có quyền API gì. Theo tài liệu, Supplier API không có đường kéo số chỗ về.
 - Cổng HTTP nhận yêu cầu từ kênh, nên chưa có rate limit và xác minh khóa cho chiều đó.
 - Chưa quy đổi tiền tệ: mỗi tiền tệ tính riêng, nên không có bảng tỷ giá.
-- XLSX: chỉ nhận báo cáo booking của GetYourGuide, còn lại là CSV. Nhập file chỉ có loại booking.
+- XLSX: chỉ nhận báo cáo booking của GetYourGuide, còn lại là CSV. Báo cáo CSV của Viator được tự nhận diện, CSV khác đi qua màn ánh xạ cột. Nhập file chỉ có loại booking.
 - Mời người dùng từ giao diện: tạo tài khoản bằng `scripts/create-user.mjs`.
 - Tự tối ưu tuyến đón: chỉ sắp xếp thủ công, không tuyên bố tối ưu.
 - Giới hạn đăng nhập: dựa vào Supabase Auth khi lên production, chưa cấu hình.

@@ -1,7 +1,7 @@
 import { DownloadOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Alert, App, Button, Card, Result, Select, Space, Statistic, Steps, Table, Tag } from 'antd'
-import { BOOKING_IMPORT_FIELDS, CHANNEL, normalizeBookingRow, normalizeGygRow, suggestColumnMap, toCsv, type ColumnMap } from '@tours/core'
+import { BOOKING_IMPORT_FIELDS, CHANNEL, normalizeBookingRow, normalizeGygRow, normalizeViatorRow, suggestColumnMap, toCsv, type ColumnMap } from '@tours/core'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
@@ -9,6 +9,8 @@ import { ColumnMapper, CsvDropzone, type LoadedFile } from '../../components/Csv
 import { fmtDateTime, NoData, PageHead } from '../../components/common'
 import { CONNECTION_COLUMNS, rpcOk, supabase, unwrap, type Row } from '../../lib/supabase'
 import { downloadText } from '../../lib/use-url-state'
+
+const PRESET_LABEL = { gyg: 'báo cáo booking GetYourGuide', viator: 'báo cáo booking Viator' }
 
 const CLASS_LABEL: Record<string, { text: string; color: string }> = {
   create: { text: 'Tạo mới', color: 'green' },
@@ -53,7 +55,9 @@ export function ImportPage() {
   const preview = useMutation({
     mutationFn: async () => {
       const payload = file!.csv.rows.map((row, i) => {
-        const n = file!.preset === 'gyg' ? normalizeGygRow(row, org?.default_timezone) : normalizeBookingRow(row, map, org?.default_timezone)
+        const n = file!.preset === 'gyg' ? normalizeGygRow(row, org?.default_timezone)
+          : file!.preset === 'viator' ? normalizeViatorRow(row, org?.default_timezone)
+          : normalizeBookingRow(row, map, org?.default_timezone)
         return { row_no: i + 2, raw: row, normalized: n.normalized, errors: n.errors }
       })
       return rpcOk('import_preview', {
@@ -91,7 +95,7 @@ export function ImportPage() {
 
         {step === 1 && (
           <Space direction="vertical" style={{ width: '100%', maxWidth: 480 }}>
-            <Alert type="info" showIcon message={`${file?.name}: ${file?.csv.rows.length} dòng, ${file?.csv.headers.length} cột. Loại dữ liệu: ${file?.preset === 'gyg' ? 'báo cáo booking GetYourGuide, không cần ánh xạ cột' : 'booking'}.`} />
+            <Alert type="info" showIcon message={`${file?.name}: ${file?.csv.rows.length} dòng, ${file?.csv.headers.length} cột. Loại dữ liệu: ${file?.preset ? `${PRESET_LABEL[file.preset]}, không cần ánh xạ cột` : 'booking'}.`} />
             <div>Tài khoản kênh của file này</div>
             <Select style={{ width: '100%' }} placeholder="Chọn tài khoản kênh" value={connection} onChange={setConnection}
               options={(connections.data ?? []).map((c) => ({ value: c.id, label: `${CHANNEL[c.channel] ?? c.channel} · ${c.account_name}` }))} />

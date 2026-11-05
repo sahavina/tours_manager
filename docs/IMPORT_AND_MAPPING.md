@@ -70,6 +70,20 @@ Giới hạn:
 - `Purchase Date` đọc theo giờ Việt Nam, nên chỉ đúng với doanh nghiệp ở múi giờ này.
 - Nhập lại cùng file không tạo trùng. Giá thay đổi thì dòng thành Cập nhật.
 
+### Báo cáo booking của Viator
+
+Tải ở cổng nhà cung cấp: **Performance → Booking details**, chọn ngày đi hoặc ngày đặt, khoảng ngày, định dạng CSV. Màn **Nhập dữ liệu** tự nhận ra file theo tên cột và bỏ qua bước ánh xạ. Viator không công bố định dạng này: thiếu cột thì file đi qua màn ánh xạ chung, không nhập sai.
+
+| Cột | Xử lý |
+|---|---|
+| `Tour Grade Code` | `TG7~12:30` thành gói `TG7`, giờ đi 12:30. Một gói chạy nhiều giờ chỉ ghép một lần |
+| `Status` | `Confirmed`, `Amended` là đang chạy, `Cancelled` là hủy. Trạng thái khác báo lỗi dòng đó. Giá trị gốc lưu ở trạng thái kênh |
+| `Net Price`, `Currency` | Dự kiến nhận. Báo cáo không có giá bán và phí, nên hai giá trị đó để trống |
+| `Lead traveler Contact Info` | Nhận khi đúng dạng email hoặc có từ 6 chữ số, nếu không thì bỏ |
+| `Hotel Pickup` | Lưu vào điểm đón nguyên văn |
+
+Đây là nhập file: booking đổi hoặc hủy trên cổng chỉ cập nhật khi tải và nhập lại.
+
 ## Nhập bảng đối soát
 
 Vào **Tài chính và đối soát > Đối soát > Nhập bảng thanh toán**. Cần ánh xạ mã booking, tiền tệ, số thực nhận.

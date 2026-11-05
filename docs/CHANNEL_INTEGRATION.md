@@ -90,6 +90,10 @@ Câu hỏi nên gửi:
 - Có API nào trả mô tả, thời lượng, ngôn ngữ, giờ chạy của sản phẩm cho chính nhà cung cấp không?
 - Có cách nào lấy booking lịch sử không, hay phải xuất file?
 
+### Quan sát trên cổng nhà cung cấp Viator (2026-11-05)
+
+Trang **Account → Connectivity** có nút "Connect now" để nối với phần mềm đặt chỗ và chưa thấy hệ thống nào được nối. Chưa mở nút này nên chưa biết Tour Hub có đăng ký vào đó được không. Không thấy chỗ cấp API key trên cổng. Dữ liệu thật lấy được bằng file: danh sách sản phẩm CSV ở trang Connectivity, booking CSV ở **Performance → Booking details**, xem [IMPORT_AND_MAPPING.md](IMPORT_AND_MAPPING.md).
+
 ## GetYourGuide: chiều dữ liệu và cách kết nối
 
 Đọc ngày 2026-11-05 từ tài liệu integrator và cổng nhà cung cấp.
