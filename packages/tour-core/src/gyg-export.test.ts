@@ -89,6 +89,12 @@ describe('báo cáo GetYourGuide', () => {
     expect(normalizeGygRow({ ...base, 'Net Price': '100.00 USD' }).normalized?.financials).toEqual({ channel_fee: undefined, expected_payout: '100.00' })
   })
 
+  it('nhận mã tham chiếu do nhà cung cấp tự đặt, không chỉ dạng T-...', () => {
+    const r = normalizeGygRow({ ...base, Product: '1147291 [JEEP-HNCITY-01] Jeep tour giả – có gạch dài' })
+    expect(r.errors).toEqual([])
+    expect(r.normalized?.items[0]?.product_code).toBe('JEEP-HNCITY-01')
+  })
+
   it('báo đủ lỗi và không đoán bừa', () => {
     const r = normalizeGygRow({ ...base, 'Booking Ref #': '', Date: 'x', Product: 'Không có mã', Adult: 'hai', Price: 'miễn phí' })
     expect(r.normalized).toBeNull()

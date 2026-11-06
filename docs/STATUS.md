@@ -95,6 +95,12 @@ Hanoi Jeep đã có thời lượng cho 4 gói ghi rõ 2 tiếng hoặc 4 tiến
 
 Thử trên 9 ánh xạ thật của Hanoi Jeep, bỏ từng ánh xạ rồi xem gợi ý: 7 mã ra đúng gói, 2 mã ("Tour jeep city ghép" và "Tour 2.0 tiếng" của GetYourGuide) được để chọn tay vì tên không ghi đủ thời lượng hoặc kiểu tour, không có gợi ý sai. Trên trình duyệt đã thử với file Viator giả ở doanh nghiệp demo, chỉ xem trước rồi xóa ánh xạ thử. Chưa thử với file mới thật có mã lạ.
 
+### Tài khoản GetYourGuide thứ hai (Hanoi Military Jeep)
+
+Báo cáo GetYourGuide có thể dùng mã tham chiếu do nhà cung cấp tự đặt (`[JEEP-HNCITY-01]`) thay cho `[T-...]`; trước bản sửa, 42 trong 49 dòng bị báo "Không đọc được mã sản phẩm". Gợi ý ghép mã dùng cả tên nội bộ trong ngoặc và tên công khai phía sau, vì phần sau mới ghi thời lượng và riêng hay ghép.
+
+Tài khoản này đã được gộp vào Hanoi Jeep: 49 booking, 4 mã Jeep ghép vào gói có sẵn, 41 booking đã vào chuyến (28 chuyến mới, sức chứa 12). Có 2 chuyến đầu tiên chứa khách từ hai tài khoản khác nhau. Còn 8 booking chờ vì chưa có gói phù hợp: tour xe máy, food tour 3 tiếng và sản phẩm `T-1151467`.
+
 ## Chưa kiểm chứng
 
 | Hạng mục | Vì sao |

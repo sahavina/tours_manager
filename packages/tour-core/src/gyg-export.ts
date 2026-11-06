@@ -20,6 +20,9 @@ const CATEGORY_COLUMNS: Record<string, string> = {
   Group: 'group',
 }
 
+/** "1147291 [JEEP-HNCITY-01] Tên sản phẩm": số sản phẩm, rồi mã tham chiếu trong ngoặc vuông. */
+export const GYG_PRODUCT = /^\s*\d*\s*\[([^\]]+)\]/
+
 export const isGygExport = (headers: readonly string[]) => REQUIRED.every((h) => headers.includes(h))
 
 function parseMoney(raw: string): { amount: string; currency: string } | null {
@@ -28,7 +31,8 @@ function parseMoney(raw: string): { amount: string; currency: string } | null {
 }
 
 /**
- * Mã sản phẩm là `T-...` để khớp với cột Reference code trên cổng. Báo cáo không có mã lựa chọn (option), nên
+ * Mã sản phẩm là mã trong ngoặc vuông, khớp với cột Reference code trên cổng: mặc định `T-...`, nhưng nhà cung cấp
+ * có thể tự đặt mã riêng như `JEEP-HNCITY-01`. Báo cáo không có mã lựa chọn (option), nên
  * dùng tên trong ngoặc vuông đầu dòng: đổi tên option trên cổng thì phải ghép mã lại.
  */
 export function normalizeGygRow(row: Record<string, string>, timezone = 'Asia/Ho_Chi_Minh', utcOffset = '+07:00'): NormalizedRow {
@@ -39,7 +43,7 @@ export function normalizeGygRow(row: Record<string, string>, timezone = 'Asia/Ho
   const travel = excelSerialToParts(row.Date ?? '')
   if (!travel) errors.push(`Ngày đi không hợp lệ: ${row.Date || '(trống)'}`)
 
-  const product = /\[(T-\d+)\]/.exec(row.Product ?? '')?.[1]
+  const product = GYG_PRODUCT.exec(row.Product ?? '')?.[1]?.trim()
   if (!product) errors.push('Không đọc được mã sản phẩm')
   const option = (/^\s*\[([^\]]*)\]/.exec(row.Option ?? '')?.[1] ?? row.Option ?? '').trim()
 

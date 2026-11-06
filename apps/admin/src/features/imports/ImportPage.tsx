@@ -104,6 +104,8 @@ export function ImportPage() {
 
         {step === 1 && (
           <Space direction="vertical" style={{ width: '100%', maxWidth: 480 }}>
+            {/* Nhập nhầm doanh nghiệp thì booking thật nằm lẫn vào dữ liệu khác, nên luôn nói rõ đang nhập vào đâu. */}
+            <Alert type="warning" showIcon message={<>Nhập vào doanh nghiệp: <b>{org?.name}</b>. Nếu không đúng, đổi doanh nghiệp ở góc trên trước khi tiếp tục.</>} />
             <Alert type="info" showIcon message={`${file?.name}: ${file?.csv.rows.length} dòng, ${file?.csv.headers.length} cột. Loại dữ liệu: ${file?.preset ? `${PRESET_LABEL[file.preset]}, không cần ánh xạ cột` : 'booking'}.`} />
             <div>Tài khoản kênh của file này</div>
             <Select style={{ width: '100%' }} placeholder="Chọn tài khoản kênh" value={connection} onChange={setConnection}

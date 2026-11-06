@@ -7,9 +7,11 @@ export type ChannelProductTitle = { product_title?: string; option_title?: strin
 export function channelTitles(preset: 'gyg' | 'viator' | undefined | null, raw: Record<string, string> | null | undefined): ChannelProductTitle {
   if (!raw) return {}
   if (preset === 'gyg') {
-    // "1272618 [T-1272618] Tên sản phẩm" và "[Tên lựa chọn] mô tả thêm".
-    const product = raw.Product?.replace(/^[^\]]*\[T-\d+\]\s*/, '').trim()
-    const option = (/^\s*\[([^\]]*)\]/.exec(raw.Option ?? '')?.[1] ?? raw.Option ?? '').trim()
+    // "1272618 [T-1272618] Tên sản phẩm" hoặc mã tự đặt như "[JEEP-HNCITY-01]", và "[Tên lựa chọn] mô tả thêm".
+    const product = raw.Product?.replace(/^\s*\d*\s*\[[^\]]+\]\s*/, '').trim()
+    // Tên trong ngoặc là tên nội bộ (thường tiếng Việt), phần sau là tên công khai và thường mới ghi thời lượng,
+    // riêng hay ghép, nên giữ cả hai.
+    const option = (raw.Option ?? '').replace(/^\s*\[([^\]]*)\]\s*/, '$1 · ').replace(/\s*·\s*$/, '').trim()
     return { product_title: product || undefined, option_title: option || undefined }
   }
   if (preset === 'viator') {

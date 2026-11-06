@@ -66,7 +66,13 @@ describe('gợi ý ghép mã', () => {
 
   it('tách tên sản phẩm và lựa chọn khỏi báo cáo', () => {
     expect(channelTitles('gyg', { Product: '1234567 [T-1234567] Hanoi Jeep Tour', Option: '[Tour riêng 2 tiếng] Private tour' }))
-      .toEqual({ product_title: 'Hanoi Jeep Tour', option_title: 'Tour riêng 2 tiếng' })
+      .toEqual({ product_title: 'Hanoi Jeep Tour', option_title: 'Tour riêng 2 tiếng · Private tour' })
+    expect(channelTitles('gyg', { Product: '1147291 [JEEP-HNCITY-01] Hanoi Military Jeep Tour', Option: '[HN Jeep City Ghép] Shared 4-Hour Tour' }))
+      .toEqual({ product_title: 'Hanoi Military Jeep Tour', option_title: 'HN Jeep City Ghép · Shared 4-Hour Tour' })
+    expect(channelTitles('gyg', { Product: '1 [T-1] X', Option: '[Chỉ tên nội bộ]' })).toEqual({ product_title: 'X', option_title: 'Chỉ tên nội bộ' })
+    // Phần sau ngoặc ghi thời lượng và kiểu tour: đủ để gợi ý dù tên nội bộ không nói gì.
+    const s = suggestMapping({ product_code: 'JEEP-X', option_code: 'Jeepcity', ...channelTitles('gyg', { Product: '1 [JEEP-X] Hanoi Jeep Tour', Option: '[Jeepcity] Private 4-Hour Tour - City Highlights' }) }, options)
+    expect(s.option_id).toBe('RIENG-4H')
     expect(channelTitles('viator', { 'Product Name': 'Hanoi Jeep Tour', 'Tour Grade Title': 'Shared 2-Hour Jeep Tour 13:00' }))
       .toEqual({ product_title: 'Hanoi Jeep Tour', option_title: 'Shared 2-Hour Jeep Tour 13:00' })
     expect(channelTitles(undefined, { Product: 'x' })).toEqual({})
