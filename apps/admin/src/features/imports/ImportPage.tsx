@@ -10,6 +10,7 @@ import { fmtDateTime, NoData, PageHead } from '../../components/common'
 import { CONNECTION_COLUMNS, rpcOk, supabase, unwrap, type Row } from '../../lib/supabase'
 import { downloadText } from '../../lib/use-url-state'
 import { PlaceWaitingModal } from '../bookings/PlaceWaitingModal'
+import { UnmappedCodes } from './UnmappedCodes'
 
 const PRESET_LABEL = { gyg: 'báo cáo booking GetYourGuide', viator: 'báo cáo booking Viator' }
 
@@ -125,6 +126,7 @@ export function ImportPage() {
 
         {step === 3 && (
           <>
+            {connection && rows.data && <UnmappedCodes connection={connection} rows={rows.data} preset={file?.preset} />}
             <Space size="large" wrap style={{ marginBottom: 16 }}>
               <Statistic title="Tạo mới" value={counts.create} />
               <Statistic title="Cập nhật" value={counts.update} />

@@ -91,6 +91,10 @@ Danh sách chọn, chi tiết chuyến và bảng Điều hành báo khi HDV ho�
 
 Hanoi Jeep đã có thời lượng cho 4 gói ghi rõ 2 tiếng hoặc 4 tiếng. Gói City và Discovery chưa rõ thời lượng, nên chỉ báo "Có thể trùng lịch". Hanoi Jeep cũng chưa khai báo HDV và xe.
 
+### Gợi ý ghép mã khi nhập
+
+Thử trên 9 ánh xạ thật của Hanoi Jeep, bỏ từng ánh xạ rồi xem gợi ý: 7 mã ra đúng gói, 2 mã ("Tour jeep city ghép" và "Tour 2.0 tiếng" của GetYourGuide) được để chọn tay vì tên không ghi đủ thời lượng hoặc kiểu tour, không có gợi ý sai. Trên trình duyệt đã thử với file Viator giả ở doanh nghiệp demo, chỉ xem trước rồi xóa ánh xạ thử. Chưa thử với file mới thật có mã lạ.
+
 ## Chưa kiểm chứng
 
 | Hạng mục | Vì sao |

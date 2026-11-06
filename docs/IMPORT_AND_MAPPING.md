@@ -90,6 +90,12 @@ Khách vào chung chuyến khi các kênh cùng nằm trong một doanh nghiệp
 
 Booking đã ghép mã nhưng chưa có chuyến nằm ở hàng chờ. Dùng nút "Xếp booking đang chờ" để xếp hàng loạt và tạo các chuyến còn thiếu. Tour riêng không được tự gộp: mỗi chuyến chỉ nhận booking đầu tiên, các booking còn lại cần xếp tay.
 
+### Gợi ý ghép mã khi nhập
+
+Ở bước xem trước, mã trong file chưa được ghép hiện kèm một gói gợi ý. Gợi ý dựa vào tên sản phẩm và lựa chọn trên báo cáo, thời lượng (2 tiếng, 4 tiếng), kiểu riêng hay ghép, và các mã khác của cùng sản phẩm đã ghép. Gói sai thời lượng hoặc sai riêng/ghép không bao giờ được gợi ý. Khi hai gói ngang điểm, ví dụ tên chỉ ghi "Tour 2.0 tiếng", hệ thống không chọn hộ.
+
+Gợi ý chỉ được lưu khi người có quyền quản lý kết nối bấm xác nhận. Xác nhận trước khi bấm nhập thì booking của mã đó vào thẳng chuyến. CSV ánh xạ cột tay không có tên sản phẩm, nên thường không có gợi ý.
+
 Chuyến gắn với gói chỉ nhận gói đó, nên gói ghép 2 tiếng và 4 tiếng không lẫn xe. Hệ thống chưa chặn hai booking tour riêng trùng ngày giờ vào cùng một chuyến, chỉ cảnh báo "Tour riêng bị ghép". Cảnh báo dựa vào công tắc "Tour riêng" của gói, nên phải bật công tắc này khi tạo gói riêng.
 
 Theo dõi chuyến ghép ở **Lịch khởi hành** và **Điều hành**: cột "Booking / kênh" và bộ lọc "Có từ 2 booking", "Ghép nhiều kênh", "Tour riêng bị ghép". Trong chi tiết chuyến và file xuất có nguồn bán và mã booking của kênh. Danh sách của hướng dẫn viên không có các thông tin nguồn bán này.
