@@ -92,7 +92,7 @@ describe('báo cáo GetYourGuide', () => {
   it('nhận mã tham chiếu do nhà cung cấp tự đặt, không chỉ dạng T-...', () => {
     const r = normalizeGygRow({ ...base, Product: '1147291 [JEEP-HNCITY-01] Jeep tour giả – có gạch dài' })
     expect(r.errors).toEqual([])
-    expect(r.normalized?.items[0]?.product_code).toBe('JEEP-HNCITY-01')
+    expect((r.normalized?.items as Array<Record<string, unknown>>)[0]?.product_code).toBe('JEEP-HNCITY-01')
   })
 
   it('báo đủ lỗi và không đoán bừa', () => {

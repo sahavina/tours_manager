@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isViatorExport, normalizeViatorRow, parseViatorDate } from './index'
+import { englishViatorCsv, isViatorExport, normalizeViatorRow, parseCsv, parseViatorDate } from './index'
 
 // Toàn bộ là dữ liệu giả.
 const base: Record<string, string> = {
@@ -69,5 +69,36 @@ describe('báo cáo booking Viator', () => {
   it('không có giờ trong mã gói thì để trống, giờ sai thì báo lỗi', () => {
     expect(item(normalizeViatorRow({ ...base, 'Tour Grade Code': 'TG7' })).local_time).toBeUndefined()
     expect(normalizeViatorRow({ ...base, 'Tour Grade Code': 'TG7~25:00' }).normalized).toBeNull()
+  })
+})
+
+describe('báo cáo Viator tải ở giao diện tiếng Việt', () => {
+  // Dữ liệu giả, theo đúng tên cột của file thật.
+  const vi = parseCsv([
+    'Mã đặt chỗ,Ngày đặt chỗ,Giá thực,Tiền tệ,Trạng thái,Ngày du lịch,Tên khách du lịch chính,Thông tin liên hệ của khách du lịch chính,Số lượng hành khách,Người lớn,Người cao tuổi,Thanh thiếu niên,Trẻ em,Trẻ sơ sinh,Mã sản phẩm,Tên sản phẩm,Mã cấp độ chuyến tham quan,Tiêu đề cấp độ chuyến tham quan,Đưa đón khách sạn,Ngôn ngữ của chuyến tham quan',
+    'BR-0000000009,"thg 10 19, 2026","1.027,45",USD,Đã sửa đổi,"thg 11 8, 2026",Khach Gia,+10000000000,3,2,0,0,1,0,P1,Tour giả,TG18~12:30,Shared 4-Hour Tour 12:30,Khách sạn giả,Tiếng Anh',
+    'BR-0000000010,"thg 8 31, 2026","0,00",USD,Đã hủy,"thg 1 3, 2027",Khach Gia,,1,1,0,0,0,0,P1,Tour giả,TG18~12:30,Shared 4-Hour Tour 12:30,,Tiếng Anh',
+  ].join('\n'))
+
+  it('đổi tên cột về bản tiếng Anh để nhận diện được', () => {
+    expect(isViatorExport(vi.headers)).toBe(false)
+    const en = englishViatorCsv(vi)
+    expect(isViatorExport(en.headers)).toBe(true)
+    expect(en.rows[0]!['Net Price']).toBe('1027.45')
+  })
+
+  it('đọc ngày, trạng thái và giá bản tiếng Việt', () => {
+    expect(parseViatorDate('thg 11 8, 2026')).toBe('2026-11-08')
+    expect(parseViatorDate('thg 13 8, 2026')).toBeNull()
+    const [a, b] = englishViatorCsv(vi).rows.map((r) => normalizeViatorRow(r))
+    expect(a!.errors).toEqual([])
+    expect(a!.normalized).toMatchObject({ status: 'confirmed', booked_at: '2026-10-19T00:00:00+07:00', financials: { expected_payout: '1027.45' } })
+    expect(item(a!)).toMatchObject({ product_code: 'P1', option_code: 'TG18', local_date: '2026-11-08', local_time: '12:30:00', pax: { adult: 2, child: 1 } })
+    expect(b!.normalized).toMatchObject({ status: 'cancelled' })
+  })
+
+  it('file tiếng Anh giữ nguyên', () => {
+    const en = parseCsv('Booking Reference,Net Price\nX,"27,45"')
+    expect(englishViatorCsv(en)).toBe(en)
   })
 })

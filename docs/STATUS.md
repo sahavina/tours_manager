@@ -101,6 +101,10 @@ Báo cáo GetYourGuide có thể dùng mã tham chiếu do nhà cung cấp tự 
 
 Tài khoản này đã được gộp vào Hanoi Jeep: 49 booking, 4 mã Jeep ghép vào gói có sẵn, 41 booking đã vào chuyến (28 chuyến mới, sức chứa 12). Có 2 chuyến đầu tiên chứa khách từ hai tài khoản khác nhau. Còn 8 booking chờ vì chưa có gói phù hợp: tour xe máy, food tour 3 tiếng và sản phẩm `T-1151467`.
 
+### Báo cáo Viator tải ở giao diện tiếng Việt
+
+Cổng Viator đổi tên cột, ngày ("thg 10 19, 2026"), dấu thập phân ("27,45") và trạng thái ("Đã xác nhận", "Đã sửa đổi", "Đã hủy") theo ngôn ngữ giao diện. Màn nhập đổi bản tiếng Việt về bản tiếng Anh trước khi nhận diện. Đã nhập file thật của tài khoản Viator thứ hai (5567092) vào Hanoi Jeep: 55 dòng, 0 lỗi. Gợi ý ghép mã chọn nhầm sang "Discovery" cho "Private 2-Hour City Jeep Tour" (mức "cần xem lại") vì tên trùng nhiều chữ, nên gói chưa rõ thời lượng vẫn dễ được gợi ý.
+
 ## Chưa kiểm chứng
 
 | Hạng mục | Vì sao |

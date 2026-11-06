@@ -1,6 +1,6 @@
 import { InboxOutlined } from '@ant-design/icons'
 import { Alert, App, Select, Table, Upload } from 'antd'
-import { isGygExport, isViatorExport, MAX_IMPORT_BYTES, MAX_IMPORT_ROWS, parseCsv, readXlsx, sha256Hex, type ColumnMap, type ParsedCsv } from '@tours/core'
+import { englishViatorCsv, isGygExport, isViatorExport, MAX_IMPORT_BYTES, MAX_IMPORT_ROWS, parseCsv, readXlsx, sha256Hex, type ColumnMap, type ParsedCsv } from '@tours/core'
 
 /** `preset`: định dạng đã biết sẵn, không cần ánh xạ cột. */
 export type LoadedFile = { name: string; size: number; hash: string; csv: ParsedCsv; preset?: 'gyg' | 'viator' }
@@ -33,7 +33,8 @@ export function CsvDropzone({ onLoaded, allowGygXlsx = false }: { onLoaded: (f: 
         }
         if (!/\.csv$/i.test(file.name)) return message.error(allowGygXlsx ? 'Chỉ nhận file .csv hoặc báo cáo .xlsx của GetYourGuide' : 'Chỉ nhận file .csv')
         const text = await file.text()
-        const csv = parseCsv(text)
+        // Báo cáo Viator tải ở giao diện tiếng Việt được đổi về bản tiếng Anh trước khi nhận diện.
+        const csv = englishViatorCsv(parseCsv(text))
         if (csv.headers.length === 0) return message.error('File trống')
         if (csv.rows.length > MAX_IMPORT_ROWS) return message.error(`File vượt quá ${MAX_IMPORT_ROWS} dòng`)
         onLoaded({ name: file.name, size: file.size, hash: await sha256Hex(text), csv, preset: allowGygXlsx && isViatorExport(csv.headers) ? 'viator' : undefined })

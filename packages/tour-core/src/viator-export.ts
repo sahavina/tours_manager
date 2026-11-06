@@ -2,6 +2,7 @@
 // Định dạng suy ra từ file thật tải ngày 2026-11-05, Viator không công bố nên có thể đổi: thiếu cột thì không
 // nhận diện được và file đi qua màn ánh xạ cột, chứ không nhập sai.
 import type { NormalizedRow } from './booking-import'
+import type { ParsedCsv } from './csv'
 import { parseTimeInput } from './booking-import'
 
 const REQUIRED = ['Booking Reference', 'Booking Date', 'Net Price', 'Currency', 'Status', 'Travel Date', 'Adults', 'Product Code', 'Tour Grade Code'] as const
@@ -15,17 +16,53 @@ const CATEGORY_COLUMNS: Record<string, string> = {
 }
 
 // Amended vẫn là booking đang chạy. Trạng thái khác (chờ xác nhận, hoàn tiền...) chưa gặp trong file thật nên báo lỗi, không đoán.
-const STATUS: Record<string, string> = { confirmed: 'confirmed', amended: 'confirmed', cancelled: 'cancelled' }
+const STATUS: Record<string, string> = {
+  confirmed: 'confirmed', amended: 'confirmed', cancelled: 'cancelled',
+  // Báo cáo tải khi cổng đang để tiếng Việt.
+  'đã xác nhận': 'confirmed', 'đã sửa đổi': 'confirmed', 'đã hủy': 'cancelled',
+}
 
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
 
 export const isViatorExport = (headers: readonly string[]) => REQUIRED.every((h) => headers.includes(h))
 
-/** "Nov 5, 2026" thành 2026-11-05. */
+// Cổng Viator đổi cả tên cột theo ngôn ngữ giao diện. Định dạng suy ra từ file thật tải ngày 2026-11-06.
+const VI_HEADERS: Record<string, string> = {
+  'Mã đặt chỗ': 'Booking Reference', 'Ngày đặt chỗ': 'Booking Date', 'Giá thực': 'Net Price', 'Tiền tệ': 'Currency',
+  'Trạng thái': 'Status', 'Ngày du lịch': 'Travel Date', 'Tên khách du lịch chính': 'Lead traveler Name',
+  'Thông tin liên hệ của khách du lịch chính': 'Lead traveler Contact Info', 'Số lượng hành khách': 'Number of Passengers',
+  'Người lớn': 'Adults', 'Người cao tuổi': 'Seniors', 'Thanh thiếu niên': 'Youths', 'Trẻ em': 'Children', 'Trẻ sơ sinh': 'Infants',
+  'Mã sản phẩm': 'Product Code', 'Tên sản phẩm': 'Product Name', 'Mã cấp độ chuyến tham quan': 'Tour Grade Code',
+  'Tiêu đề cấp độ chuyến tham quan': 'Tour Grade Title', 'Đưa đón khách sạn': 'Hotel Pickup',
+  'Ngôn ngữ của chuyến tham quan': 'Tour Language', 'Kênh di động/internet': 'Mobile/Internet Channel', 'Mã vạch': 'Barcodes',
+  'Số xác nhận của nhà cung cấp': 'Supplier Confirmation Number', 'Nguồn đặt chỗ': 'Booking Source', 'Không hiển thị': 'No Show',
+}
+
+/**
+ * Báo cáo bản tiếng Việt thành bản tiếng Anh: đổi tên cột, và giá dạng "27,45" hay "1.234,50" thành "27.45", "1234.50".
+ * File không phải bản tiếng Việt thì trả nguyên.
+ */
+export function englishViatorCsv(csv: ParsedCsv): ParsedCsv {
+  const headers = csv.headers.map((h) => h.normalize('NFC').trim())
+  if (!headers.includes('Mã đặt chỗ') || !headers.includes('Mã cấp độ chuyến tham quan')) return csv
+  const rename = (h: string) => VI_HEADERS[h.normalize('NFC').trim()] ?? h
+  const rows = csv.rows.map((row) => {
+    const out: Record<string, string> = {}
+    for (const [k, v] of Object.entries(row)) out[rename(k)] = v
+    const net = out['Net Price']?.trim() ?? ''
+    if (/^\d{1,3}(\.\d{3})*,\d+$|^\d+,\d+$/.test(net)) out['Net Price'] = net.replace(/\./g, '').replace(',', '.')
+    return out
+  })
+  return { ...csv, headers: csv.headers.map(rename), rows }
+}
+
+/** "Nov 5, 2026" hoặc "thg 11 5, 2026" thành 2026-11-05. */
 export function parseViatorDate(raw: string): string | null {
-  const m = /^([A-Za-z]{3})\s+(\d{1,2}),\s*(\d{4})$/.exec(raw.trim())
+  const vi = /^thg\s+(\d{1,2})\s+(\d{1,2}),\s*(\d{4})$/i.exec(raw.trim())
+  const m = vi ?? /^([A-Za-z]{3})\s+(\d{1,2}),\s*(\d{4})$/.exec(raw.trim())
   if (!m) return null
-  const month = MONTHS.indexOf(m[1]!.toLowerCase())
+  // Bản tiếng Việt ghi tháng bằng số: "thg 10 19, 2026".
+  const month = vi ? Number(m[1]) - 1 : MONTHS.indexOf(m[1]!.toLowerCase())
   const [day, year] = [Number(m[2]), Number(m[3])]
   const date = new Date(Date.UTC(year, month, day))
   if (month < 0 || date.getUTCMonth() !== month || date.getUTCDate() !== day) return null
@@ -53,7 +90,7 @@ export function normalizeViatorRow(row: Record<string, string>, timezone = 'Asia
   if (rawTime && !time) errors.push(`Giờ đi không hợp lệ: ${rawTime}`)
 
   const rawStatus = row.Status?.trim() ?? ''
-  const status = STATUS[rawStatus.toLowerCase()]
+  const status = STATUS[rawStatus.normalize('NFC').toLowerCase()]
   if (!status) errors.push(`Trạng thái không nhận diện được: ${rawStatus || '(trống)'}`)
 
   const pax: Record<string, number> = {}
