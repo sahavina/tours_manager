@@ -19,7 +19,7 @@ function useCatalog() {
   const { orgId } = useAuth()
   return useQuery({
     queryKey: ['catalog-tree', orgId],
-    queryFn: async () => unwrap(await supabase.from('tours').select('id, name, code, default_timezone, tour_options(id, name, code, deleted_at)')
+    queryFn: async () => unwrap(await supabase.from('tours').select('id, name, code, default_timezone, tour_options(id, name, code, deleted_at, default_capacity)')
       .eq('organization_id', orgId).is('deleted_at', null).order('name')) as unknown as Row[],
   })
 }
@@ -67,7 +67,8 @@ function GenerateModal({ onClose }: { onClose: () => void }) {
             onChange={(id) => { form.setFieldsValue({ timezone: catalog.data?.find((t) => t.id === id)?.default_timezone, option_id: undefined }) }} />
         </Form.Item>
         <Form.Item name="option_id" label="Gói (bỏ trống nếu dùng chung cho mọi gói của tour)">
-          <Select allowClear options={(tour?.tour_options ?? []).filter((o: Row) => !o.deleted_at).map((o: Row) => ({ value: o.id, label: o.name }))} />
+          <Select allowClear options={(tour?.tour_options ?? []).filter((o: Row) => !o.deleted_at).map((o: Row) => ({ value: o.id, label: o.name }))}
+            onChange={(id) => { const cap = tour?.tour_options?.find((o: Row) => o.id === id)?.default_capacity; if (cap) form.setFieldsValue({ capacity: cap }) }} />
         </Form.Item>
         <Form.Item name="range" label="Khoảng ngày" rules={[{ required: true }]}><DatePicker.RangePicker format="DD/MM/YYYY" style={{ width: '100%' }} /></Form.Item>
         <Form.Item name="weekdays" label="Thứ trong tuần" rules={[{ required: true, message: 'Chọn ít nhất một thứ' }]}><Checkbox.Group options={WEEKDAYS} /></Form.Item>
@@ -123,7 +124,8 @@ function SingleModal({ onClose }: { onClose: () => void }) {
           <Select showSearch optionFilterProp="label" options={(catalog.data ?? []).map((t) => ({ value: t.id, label: `${t.code} · ${t.name}` }))}
             onChange={(id) => form.setFieldsValue({ timezone: catalog.data?.find((t) => t.id === id)?.default_timezone, option_id: undefined })} />
         </Form.Item>
-        <Form.Item name="option_id" label="Gói"><Select allowClear options={(tour?.tour_options ?? []).filter((o: Row) => !o.deleted_at).map((o: Row) => ({ value: o.id, label: o.name }))} /></Form.Item>
+        <Form.Item name="option_id" label="Gói"><Select allowClear options={(tour?.tour_options ?? []).filter((o: Row) => !o.deleted_at).map((o: Row) => ({ value: o.id, label: o.name }))}
+          onChange={(id) => { const cap = tour?.tour_options?.find((o: Row) => o.id === id)?.default_capacity; if (cap) form.setFieldsValue({ capacity: cap }) }} /></Form.Item>
         <Space wrap>
           <Form.Item name="date" label="Ngày" rules={[{ required: true, message: 'Chọn ngày' }]}><DatePicker format="DD/MM/YYYY" /></Form.Item>
           <Form.Item name="time" label="Giờ" rules={[{ required: true }]}><TimePicker format="HH:mm" minuteStep={5} /></Form.Item>

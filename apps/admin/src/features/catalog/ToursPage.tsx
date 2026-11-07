@@ -1,24 +1,38 @@
-import { useQuery } from '@tanstack/react-query'
-import { Card, Drawer, Select, Tabs, Tag } from 'antd'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { App, Button, Card, Drawer, Popconfirm, Select, Tabs, Tag } from 'antd'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
 import { ActiveTag, CrudPage } from '../../components/CrudPage'
 import { PageHead } from '../../components/common'
-import { supabase, unwrap, type Row } from '../../lib/supabase'
+import { rpcOk, supabase, unwrap, type Row } from '../../lib/supabase'
 
 const LANG = [{ value: 'en', label: 'Tiếng Anh' }, { value: 'vi', label: 'Tiếng Việt' }, { value: 'ko', label: 'Tiếng Hàn' }, { value: 'ja', label: 'Tiếng Nhật' }, { value: 'zh', label: 'Tiếng Trung' }, { value: 'fr', label: 'Tiếng Pháp' }]
 
 function Options({ tourId }: { tourId?: string }) {
-  const { orgId } = useAuth()
+  const { orgId, can } = useAuth()
+  const { message } = App.useApp()
+  const qc = useQueryClient()
   const [selected, setSelected] = useState(tourId)
+  // Chuyến đã tạo giữ sức chứa riêng; đổi số ở gói chỉ áp cho chuyến mới, trừ khi bấm áp cho chuyến sắp tới.
+  const apply = useMutation({
+    mutationFn: (option: string) => rpcOk('apply_option_capacity', { p_option: option }),
+    onSuccess: (r) => {
+      const skipped = (r.skipped as Row[]).length
+      const text = `Đã đổi ${r.updated} chuyến sang ${r.capacity} chỗ${r.unchanged ? `, ${r.unchanged} chuyến đã đúng` : ''}${skipped ? `, giữ nguyên ${skipped} chuyến vì đã có nhiều khách hơn hoặc dùng chung nguồn chỗ` : ''}`
+      if (skipped) message.warning(text, 8)
+      else message.success(text)
+      for (const key of ['departures', 'ops-board']) qc.invalidateQueries({ queryKey: [key] })
+    },
+    onError: (e: Error) => message.error(e.message),
+  })
   const tours = useQuery({
     queryKey: ['tours-lite', orgId],
     queryFn: async () => unwrap(await supabase.from('tours').select('id, name').eq('organization_id', orgId).is('deleted_at', null).order('name')) as Row[],
   })
   return (
     <CrudPage bare title="Gói dịch vụ" table="tour_options" queryKey="tour_options" managePerm="catalog.manage" softDelete order="code"
-      select="id, tour_id, code, name, language, has_transfer, is_private, duration_minutes, cutoff_minutes, ops_policy, is_active, price_rules, capacity_rules, tours(name)"
+      select="id, tour_id, code, name, language, has_transfer, is_private, duration_minutes, default_capacity, cutoff_minutes, ops_policy, is_active, price_rules, capacity_rules, tours(name)"
       search={(q) => `code.ilike.%${q}%,name.ilike.%${q}%`}
       extra={<Select allowClear placeholder="Lọc theo tour" style={{ minWidth: 200 }} value={selected} onChange={setSelected} options={(tours.data ?? []).map((t) => ({ value: t.id, label: t.name }))} />}
       columns={[
@@ -29,6 +43,16 @@ function Options({ tourId }: { tourId?: string }) {
         { title: 'Đưa đón', render: (_, r) => (r.has_transfer ? <Tag color="cyan">Có đưa đón</Tag> : 'Không') },
         { title: 'Loại', render: (_, r) => (r.is_private ? 'Tour riêng' : 'Tour ghép') },
         { title: 'Thời lượng', render: (_, r) => (r.duration_minutes ? `${r.duration_minutes} phút` : <span className="muted">Theo tour</span>) },
+        { title: 'Sức chứa mỗi chuyến', render: (_, r) => r.default_capacity ? (
+          <span className="nowrap">{r.default_capacity} khách
+            {can('departure.manage') && (
+              <Popconfirm title={`Đổi các chuyến sắp chạy của gói này sang ${r.default_capacity} chỗ?`}
+                description="Chuyến đã có nhiều khách hơn sẽ giữ nguyên." okText="Áp dụng" cancelText="Hủy" onConfirm={() => apply.mutate(r.id)}>
+                <Button type="link" size="small" loading={apply.isPending && apply.variables === r.id}>Áp cho chuyến sắp tới</Button>
+              </Popconfirm>
+            )}
+          </span>
+        ) : <span className="muted">Chưa cấu hình</span> },
         { title: 'Hạn nhận khách', render: (_, r) => (r.cutoff_minutes ? `Trước ${r.cutoff_minutes} phút` : 'Đến giờ chạy') },
         { title: 'Trạng thái', render: (_, r) => <ActiveTag value={r.is_active} /> },
       ]}
@@ -41,6 +65,7 @@ function Options({ tourId }: { tourId?: string }) {
         { name: 'has_transfer', label: 'Có đưa đón', type: 'switch', defaultValue: false },
         { name: 'is_private', label: 'Tour riêng', type: 'switch', defaultValue: false },
         { name: 'duration_minutes', label: 'Thời lượng (phút, bỏ trống thì dùng của tour)', type: 'number', min: 1 },
+        { name: 'default_capacity', label: 'Sức chứa mỗi chuyến (số khách, dùng khi tạo chuyến mới)', type: 'number', min: 1 },
         { name: 'cutoff_minutes', label: 'Hạn chót nhận khách (phút trước giờ chạy)', type: 'number', min: 0, defaultValue: 0 },
         { name: 'ops_policy', label: 'Chính sách vận hành', type: 'textarea' },
         { name: 'is_active', label: 'Đang hoạt động', type: 'switch', defaultValue: true },

@@ -103,3 +103,46 @@ describe('xếp booking đang chờ', () => {
     expect(await owner(`select id from public.departures where organization_id = $1`, [w.org])).toEqual([])
   })
 })
+
+describe('sức chứa mặc định theo gói', () => {
+  const capacityOf = async (dep: string) =>
+    (await owner<{ capacity: number }>(`select p.capacity from public.departures d join public.inventory_pools p on p.id = d.inventory_pool_id where d.id = $1`, [dep]))[0]!.capacity
+  const tripFor = async (w: Awaited<ReturnType<typeof makeWorld>>, date: string) =>
+    (await owner<{ id: string }>(`select id from public.departures where organization_id = $1 and local_date = $2`, [w.org, date]))[0]!.id
+
+  it('tạo chuyến theo sức chứa của gói, số nhập tay chỉ dùng cho gói chưa cấu hình', async () => {
+    const w = await makeWorld('cap1')
+    await owner(`update public.tour_options set default_capacity = 4 where id = $1`, [w.option])
+    await ingest(w, 'A', '2030-10-01')
+    await ingest(w, 'B', '2030-10-02', { product: 'P2' })
+    const preview = await rpc(user(w.ownerId), 'place_waiting_bookings', w.org, true, null)
+    expect(preview.rows.map((r: any) => r.default_capacity).sort()).toEqual([4, null])
+
+    // Chưa nhập số: chỉ gói đã cấu hình được tạo chuyến.
+    expect(await rpc(user(w.ownerId), 'place_waiting_bookings', w.org, false, null)).toMatchObject({ placed: 1, created: 1 })
+    expect(await capacityOf(await tripFor(w, '2030-10-01'))).toBe(4)
+    expect(await rpc(user(w.ownerId), 'place_waiting_bookings', w.org, false, 9)).toMatchObject({ placed: 1, created: 1 })
+    expect(await capacityOf(await tripFor(w, '2030-10-02'))).toBe(9)
+  })
+
+  it('áp sức chứa của gói cho chuyến sắp chạy, không làm khách mất chỗ', async () => {
+    const w = await makeWorld('cap2')
+    const mk = (date: string, cap: number) => rpc(user(w.ownerId), 'create_departure', w.org, w.tour, w.option, date, '08:00', 'Asia/Ho_Chi_Minh', cap, null).then((r) => r.departure_id as string)
+    const empty = await mk('2030-10-05', 12)
+    const busy = await mk('2030-10-06', 12)
+    const past = await mk('2020-10-06', 12)
+    await ingest(w, 'BIG', '2030-10-06', { pax: { adult: 6 } })
+
+    expect(await rpc(user(w.ownerId), 'apply_option_capacity', w.option)).toMatchObject({ ok: false, code: 'no_default_capacity' })
+    await owner(`update public.tour_options set default_capacity = 4 where id = $1`, [w.option])
+    const r = await rpc(user(w.ownerId), 'apply_option_capacity', w.option)
+    expect(r).toMatchObject({ ok: true, capacity: 4, updated: 1 })
+    expect(r.skipped).toEqual([expect.objectContaining({ departure_id: busy, code: 'below_committed', committed: 6 })])
+    expect(await capacityOf(empty)).toBe(4)
+    expect(await capacityOf(busy)).toBe(12)
+    expect(await capacityOf(past)).toBe(12)
+    expect((await seats(busy)).committed).toBe(6)
+
+    await expect(rpc(user(w.agent), 'apply_option_capacity', w.option)).rejects.toThrow(/forbidden/)
+  })
+})

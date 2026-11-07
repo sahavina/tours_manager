@@ -105,6 +105,10 @@ Tài khoản này đã được gộp vào Hanoi Jeep: 49 booking, 4 mã Jeep gh
 
 Cổng Viator đổi tên cột, ngày ("thg 10 19, 2026"), dấu thập phân ("27,45") và trạng thái ("Đã xác nhận", "Đã sửa đổi", "Đã hủy") theo ngôn ngữ giao diện. Màn nhập đổi bản tiếng Việt về bản tiếng Anh trước khi nhận diện. Đã nhập file thật của tài khoản Viator thứ hai (5567092) vào Hanoi Jeep: 55 dòng, 0 lỗi. Gợi ý ghép mã chọn nhầm sang "Discovery" cho "Private 2-Hour City Jeep Tour" (mức "cần xem lại") vì tên trùng nhiều chữ, nên gói chưa rõ thời lượng vẫn dễ được gợi ý.
 
+### Sức chứa theo gói
+
+Mỗi gói có thể đặt "Sức chứa mỗi chuyến". Số này được dùng khi tạo chuyến mới: xếp booking đang chờ, tạo chuyến và tạo chuyến lặp. Chuyến đã tạo giữ sức chứa riêng, trừ khi bấm "Áp cho chuyến sắp tới" ở màn gói; chuyến đã có nhiều khách hơn số mới hoặc dùng chung nguồn chỗ thì giữ nguyên. Test database phủ các nhánh. Trên trình duyệt đã xem cột và ô nhập ở Hanoi Jeep, chưa lưu số nào vì chưa có số thật cho từng gói.
+
 ## Chưa kiểm chứng
 
 | Hạng mục | Vì sao |

@@ -22,7 +22,10 @@ export function PlaceWaitingModal({ onClose }: { onClose: () => void }) {
   })
   const rows = (preview.data?.rows ?? []) as Row[]
   const missing = rows.filter((r) => !r.departure_id).length
-  const willPlace = rows.reduce((s, r) => s + (r.departure_id || createMissing ? r.bookings : 0), 0)
+  // Gói đã cấu hình sức chứa thì tự tạo chuyến theo số đó; chỉ gói chưa cấu hình mới cần nhập số.
+  const missingNoDefault = rows.filter((r) => !r.departure_id && !r.default_capacity).length
+  const willCreate = (r: Row) => !r.departure_id && canCreate && (r.default_capacity || (createMissing && capacity))
+  const willPlace = rows.reduce((s, r) => s + (r.departure_id || willCreate(r) ? r.bookings : 0), 0)
 
   const run = useMutation({
     mutationFn: () => rpcOk('place_waiting_bookings', { p_org: orgId, p_dry_run: false, p_create_capacity: createMissing ? capacity : null }),
@@ -59,11 +62,13 @@ export function PlaceWaitingModal({ onClose }: { onClose: () => void }) {
               { title: 'Chỗ', dataIndex: 'seats', align: 'right' },
               { title: 'Chuyến', render: (_, r) => r.departure_id
                 ? <Tag color={r.available_seats < r.seats ? 'red' : 'green'}>Đã có, còn {r.available_seats} chỗ</Tag>
-                : <Tag color="orange">Chưa có chuyến</Tag> },
+                : r.default_capacity
+                  ? <Tag color={r.seats > r.default_capacity ? 'red' : 'blue'}>Tạo chuyến {r.default_capacity} chỗ theo gói</Tag>
+                  : <Tag color="orange">Chưa có chuyến</Tag> },
             ]} />
-          {missing > 0 && canCreate && (
+          {missingNoDefault > 0 && canCreate && (
             <Space wrap style={{ marginTop: 12 }}>
-              <Checkbox checked={createMissing} onChange={(e) => setCreateMissing(e.target.checked)}>Tạo {missing} chuyến còn thiếu, sức chứa mỗi chuyến</Checkbox>
+              <Checkbox checked={createMissing} onChange={(e) => setCreateMissing(e.target.checked)}>Tạo {missingNoDefault} chuyến cho gói chưa cấu hình sức chứa, mỗi chuyến</Checkbox>
               <InputNumber min={1} value={capacity} disabled={!createMissing} placeholder="Số chỗ" onChange={setCapacity} />
             </Space>
           )}
