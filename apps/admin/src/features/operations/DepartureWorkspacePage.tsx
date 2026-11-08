@@ -10,6 +10,7 @@ import { Can, ChannelLabel, ErrorState, fmtDateTime, Loading, LocalTime, MoneyTe
 import { friendlyError, rpc, rpcOk, supabase, unwrap, type Row } from '../../lib/supabase'
 import { downloadText } from '../../lib/use-url-state'
 import { BookingMix, isPrivateConflict } from '../departures/BookingMix'
+import { PickupDiagram } from './PickupDiagram'
 
 export function DepartureWorkspacePage() {
   const { id = '' } = useParams()
@@ -119,6 +120,7 @@ export function DepartureWorkspacePage() {
           <Card>
             <Tabs activeKey={tab} onChange={(k) => setParams(k === 'pax' ? {} : { tab: k }, { replace: true })} items={[
               { key: 'pax', label: `Khách (${paxTotal}) · ${active.length} booking`, children: <Manifest departure={id} rows={manifest.data} loading={manifest.isLoading} error={manifest.error} /> },
+              { key: 'pickup', label: 'Sơ đồ đón', children: <PickupDiagram departure={id} rows={manifest.data} departureTime={d.local_time} loading={manifest.isLoading} error={manifest.error} /> },
               // RLS trả rỗng khi thiếu ops.read: "Chưa có sự cố" sẽ là thông tin sai, nên ẩn hẳn tab.
               ...(can('ops.read') ? [{ key: 'incidents', label: 'Sự cố', children: <Incidents departure={id} /> }] : []),
               ...(can('finance.read') ? [{ key: 'costs', label: 'Chi phí', children: <Costs departure={id} /> }] : []),

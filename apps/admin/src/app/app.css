@@ -28,3 +28,14 @@ pre.payload { background: #0f172a; color: #e2e8f0; padding: 12px; border-radius:
 @media (max-width: 640px) {
   .ant-layout-content { padding: 12px !important; }
 }
+.pickup-lanes { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.pickup-lane { border: 1px solid #f0f0f0; border-radius: 8px; padding: 12px; }
+.pickup-lane-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
+.pickup-list { list-style: none; margin: 0; padding: 0; }
+.pickup-stop { position: relative; display: flex; gap: 10px; padding-bottom: 16px; }
+.pickup-stop:not(:last-child)::before { content: ''; position: absolute; left: 12px; top: 26px; bottom: 0; width: 2px; background: #0f766e; opacity: .35; }
+.pickup-end { padding-bottom: 0; }
+.pickup-node { flex: none; width: 26px; height: 26px; border-radius: 50%; background: #0f766e; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+.pickup-end .pickup-node { background: #334155; }
+.pickup-body { min-width: 0; padding-top: 2px; }
+.pickup-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }

@@ -109,6 +109,10 @@ Cổng Viator đổi tên cột, ngày ("thg 10 19, 2026"), dấu thập phân (
 
 Mỗi gói có thể đặt "Sức chứa mỗi chuyến". Số này được dùng khi tạo chuyến mới: xếp booking đang chờ, tạo chuyến và tạo chuyến lặp. Chuyến đã tạo giữ sức chứa riêng, trừ khi bấm "Áp cho chuyến sắp tới" ở màn gói; chuyến đã có nhiều khách hơn số mới hoặc dùng chung nguồn chỗ thì giữ nguyên. Test database phủ các nhánh. Trên trình duyệt đã xem cột và ô nhập ở Hanoi Jeep, chưa lưu số nào vì chưa có số thật cho từng gói.
 
+### Sơ đồ đón
+
+Trang chuyến có tab "Sơ đồ đón": mỗi xe một tuyến, các điểm theo thứ tự ở tab Khách, gộp booking cùng khách sạn, kèm cảnh báo giờ đón sai thứ tự và booking chưa có điểm đón. Đây là sơ đồ thứ tự, không phải bản đồ, vì điểm đón chưa có tọa độ. Test `tour-core` phủ các nhánh. Trên trình duyệt đã xem một chuyến thật chưa chia xe, ở khung máy tính và 375 px; tuyến nhiều xe mới được kiểm bằng test.
+
 ## Chưa kiểm chứng
 
 | Hạng mục | Vì sao |
