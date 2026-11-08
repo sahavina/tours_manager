@@ -6,7 +6,7 @@ import { useAuth } from '../../auth/AuthProvider'
 import { ErrorState, LocalTime, NoData, PageHead } from '../../components/common'
 import { rpc, type Row } from '../../lib/supabase'
 import { useUrlTable } from '../../lib/use-url-state'
-import { BookingMix, MIX_FILTERS, MIX_OPTIONS } from '../departures/BookingMix'
+import { BookingMix, MIX_FILTERS, MIX_OPTIONS, SlotTag } from '../departures/BookingMix'
 
 const FLAGS: Record<string, { label: string; test: (d: Row) => boolean }> = {
   missing: { label: 'Thiếu HDV hoặc xe', test: (d) => d.missing_guide || d.missing_vehicle },
@@ -32,7 +32,7 @@ export function OperationsBoardPage() {
   })
   const flag = f.flag ? FLAGS[f.flag] : undefined
   const mixFilter = f.mix ? MIX_FILTERS[f.mix] : undefined
-  const rows = (board.data ?? []).filter((d) => (f.all === '1' || d.seats > 0) && (!flag || flag.test(d)) && (!mixFilter || mixFilter.test(d.bookings, d.channel_mix, d.is_private)))
+  const rows = [...(board.data ?? [])].sort((a, b) => String(a.starts_at).localeCompare(String(b.starts_at)) || a.slot_no - b.slot_no).filter((d) => (f.all === '1' || d.seats > 0) && (!flag || flag.test(d)) && (!mixFilter || mixFilter.test(d.bookings, d.channel_mix, d.is_private)))
 
   return (
     <>
@@ -52,7 +52,7 @@ export function OperationsBoardPage() {
           <Table rowKey="id" size="middle" loading={board.isLoading} dataSource={rows} scroll={{ x: 'max-content' }} pagination={{ pageSize: 50, hideOnSinglePage: true }}
             locale={{ emptyText: <NoData text="Không có việc nào trong khoảng này" /> }}
             columns={[
-              { title: 'Ngày giờ', render: (_, d) => <Link to={`/operations/${d.id}`}><LocalTime date={d.local_date} time={d.local_time} tz={d.timezone} /></Link> },
+              { title: 'Ngày giờ', render: (_, d) => <><Link to={`/operations/${d.id}`}><LocalTime date={d.local_date} time={d.local_time} tz={d.timezone} /></Link><SlotTag slot={d.slot_no} /></> },
               { title: 'Tour', render: (_, d) => <>{d.tour_name}<div className="muted" style={{ fontSize: 12 }}>{d.option_name ?? 'Mọi gói'}</div></> },
               { title: 'Khách', dataIndex: 'seats', align: 'right' },
               { title: 'Booking / kênh', render: (_, d) => <BookingMix bookings={d.bookings} mix={d.channel_mix} isPrivate={d.is_private} /> },

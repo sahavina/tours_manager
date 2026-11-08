@@ -1,6 +1,6 @@
 import { ArrowDownOutlined, ArrowUpOutlined, DownloadOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Alert, App, Button, Card, Col, Descriptions, Form, Input, InputNumber, List, Modal, Row as GridRow, Select, Space, Switch, Table, Tabs, Tag, Typography } from 'antd'
+import { Alert, App, Button, Card, Col, Descriptions, Form, Input, InputNumber, List, Modal, Popconfirm, Row as GridRow, Select, Space, Switch, Table, Tabs, Tag, Typography } from 'antd'
 import { ATTENDANCE, CHANNEL, formatPax, toCsv } from '@tours/core'
 import dayjs from 'dayjs'
 import { useState } from 'react'
@@ -9,7 +9,7 @@ import { useAuth } from '../../auth/AuthProvider'
 import { Can, ChannelLabel, ErrorState, fmtDateTime, Loading, LocalTime, MoneyText, NoData, PageHead } from '../../components/common'
 import { friendlyError, rpc, rpcOk, supabase, unwrap, type Row } from '../../lib/supabase'
 import { downloadText } from '../../lib/use-url-state'
-import { BookingMix, isPrivateConflict } from '../departures/BookingMix'
+import { BookingMix, isPrivateConflict, SlotTag } from '../departures/BookingMix'
 import { PickupDiagram } from './PickupDiagram'
 
 export function DepartureWorkspacePage() {
@@ -44,6 +44,17 @@ export function DepartureWorkspacePage() {
   const capacity = useMutation({
     mutationFn: (v: Row) => rpcOk('update_pool_capacity', { p_pool: dep.data!.inventory_pool_id, p_capacity: v.capacity, p_blocked: v.blocked_seats ?? 0 }),
     onSuccess: () => { message.success('Đã đổi sức chứa'); setCapOpen(false); invalidate() },
+    onError: (e: Error) => message.error(e.message),
+  })
+  const split = useMutation({
+    mutationFn: () => rpcOk('split_departure', { p_departure: id }),
+    onSuccess: (r) => {
+      const over = (r.oversized as Row[]).map((o) => `${o.code} (${o.seats} khách)`).join(', ')
+      const text = `Đã chuyển ${r.moved} booking sang chuyến cùng giờ, mở thêm ${r.created} chuyến${over ? `. Đoàn lớn hơn sức chứa đi trọn một chuyến: ${over}` : ''}`
+      if (over) message.warning(text, 8)
+      else message.success(text)
+      invalidate()
+    },
     onError: (e: Error) => message.error(e.message),
   })
   const complete = useMutation({
@@ -84,8 +95,14 @@ export function DepartureWorkspacePage() {
   const paxTotal = active.reduce((s, m) => s + (m.pax_total as number), 0)
   return (
     <>
-      <PageHead title={<Space wrap>{d.tour_name}<LocalTime date={d.local_date} time={d.local_time} tz={d.timezone} /></Space>} extra={
+      <PageHead title={<Space wrap>{d.tour_name}<LocalTime date={d.local_date} time={d.local_time} tz={d.timezone} /><SlotTag slot={d.slot_no} /></Space>} extra={
         <>
+          {d.status === 'scheduled' && d.default_capacity && d.departure_seats > d.default_capacity && can('ops.manage') && can('departure.manage') && (
+            <Popconfirm title={`Tách chuyến này theo sức chứa ${d.default_capacity} khách?`} okText="Tách chuyến" cancelText="Hủy"
+              description="Khách dư chuyển sang chuyến khác cùng giờ, không tách đoàn. Xe đã chia của khách được chuyển sẽ phải chia lại." onConfirm={() => split.mutate()}>
+              <Button loading={split.isPending}>Tách chuyến</Button>
+            </Popconfirm>
+          )}
           <Button icon={<DownloadOutlined />} onClick={exportList} disabled={active.length === 0}>Xuất danh sách</Button>
           {d.status === 'scheduled' && can('ops.manage') && <Button onClick={finish}>Đóng chuyến</Button>}
         </>

@@ -216,7 +216,7 @@ function Trip({ b }: { b: Row }) {
   const targets = useQuery({
     queryKey: ['move-targets', moving?.tour_id],
     enabled: Boolean(moving?.tour_id),
-    queryFn: async () => unwrap(await supabase.from('v_departure_availability').select('id, local_date, local_time, available_seats')
+    queryFn: async () => unwrap(await supabase.from('v_departure_availability').select('id, local_date, local_time, available_seats, slot_no')
       .eq('organization_id', orgId).eq('tour_id', moving!.tour_id).eq('status', 'scheduled')
       .gte('local_date', dayjs().format('YYYY-MM-DD')).order('starts_at').limit(100)) as Row[],
   })
@@ -268,7 +268,7 @@ function Trip({ b }: { b: Row }) {
         <Select style={{ width: '100%' }} placeholder="Chọn chuyến đích" loading={targets.isLoading}
           options={(targets.data ?? []).filter((d) => d.id !== moving?.departure_id).map((d) => ({
             value: d.id, disabled: d.available_seats < (moving?.seats ?? 0),
-            label: `${dayjs(d.local_date).format('DD/MM/YYYY')} ${String(d.local_time).slice(0, 5)} · còn ${d.available_seats} chỗ`,
+            label: `${dayjs(d.local_date).format('DD/MM/YYYY')} ${String(d.local_time).slice(0, 5)}${d.slot_no > 1 ? ` (chuyến ${d.slot_no})` : ''} · còn ${d.available_seats} chỗ`,
           }))} onChange={(v: string) => move.mutate(v)} />
       </Modal>
       <Modal title="Điểm đón" open={Boolean(pickupFor)} onCancel={() => setPickupFor(null)} onOk={() => form.submit()} okText="Lưu" cancelText="Hủy" confirmLoading={savePickup.isPending}>

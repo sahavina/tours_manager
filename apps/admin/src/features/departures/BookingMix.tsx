@@ -4,6 +4,9 @@ import type { Row } from '../../lib/supabase'
 
 type Mix = { channel: string; bookings: number; seats: number }
 
+/** Nhãn phân biệt các chuyến cùng gói, ngày, giờ. Chuyến đầu tiên không cần nhãn. */
+export const SlotTag = ({ slot }: { slot?: number }) => (slot && slot > 1 ? <Tag color="purple" style={{ marginLeft: 6 }}>Chuyến {slot}</Tag> : null)
+
 /** "GetYourGuide 2 · Viator 1": số booking đang giữ chỗ theo từng kênh. */
 export function mixText(mix: Mix[] = []) {
   return mix.map((m) => `${CHANNEL[m.channel] ?? m.channel} ${m.bookings}`).join(' · ')

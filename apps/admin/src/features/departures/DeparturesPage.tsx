@@ -8,7 +8,7 @@ import { useAuth } from '../../auth/AuthProvider'
 import { Can, ErrorState, LocalTime, NoData, PageHead } from '../../components/common'
 import { rpcOk, supabase, unwrap, type Row } from '../../lib/supabase'
 import { useUrlTable } from '../../lib/use-url-state'
-import { BookingMix, MIX_FILTERS, MIX_OPTIONS, mixText } from './BookingMix'
+import { BookingMix, MIX_FILTERS, MIX_OPTIONS, mixText, SlotTag } from './BookingMix'
 
 const WEEKDAYS = [
   { value: 1, label: 'T2' }, { value: 2, label: 'T3' }, { value: 3, label: 'T4' }, { value: 4, label: 'T5' },
@@ -157,7 +157,7 @@ export function DeparturesPage() {
     queryFn: async () => {
       let q = supabase.from('v_departure_availability').select('*').eq('organization_id', orgId).gte('local_date', from).lte('local_date', to)
       if (f.tour) q = q.eq('tour_id', f.tour)
-      return unwrap(await q.order('starts_at').limit(1000)) as Row[]
+      return unwrap(await q.order('starts_at').order('slot_no').limit(1000)) as Row[]
     },
   })
 
@@ -210,7 +210,7 @@ export function DeparturesPage() {
                   const title = [d.tour_name, d.option_name ?? 'Mọi gói', d.is_private && d.booking_count > 0 ? 'Tour riêng' : `còn ${d.available_seats}`, mixText(d.channel_mix)].filter(Boolean).join(' · ')
                   return (
                     <span key={d.id} className={`cal-chip ${cls}`} title={title}>
-                      {String(d.local_time).slice(0, 5)} · {d.committed_seats}/{d.capacity}{d.channel_mix.length >= 2 && ` · ${d.channel_mix.length} kênh`}
+                      {String(d.local_time).slice(0, 5)}{d.slot_no > 1 && ` #${d.slot_no}`} · {d.committed_seats}/{d.capacity}{d.channel_mix.length >= 2 && ` · ${d.channel_mix.length} kênh`}
                       <span className="cal-chip-sub">{d.option_name ?? d.tour_code}</span>
                     </span>
                   )
@@ -224,7 +224,7 @@ export function DeparturesPage() {
             pagination={{ pageSize: 50, hideOnSinglePage: true }} locale={{ emptyText: <NoData text="Chưa có chuyến trong khoảng này" /> }}
             onRow={(r) => ({ onDoubleClick: () => nav(`/operations/${r.id}`) })}
             columns={[
-              { title: 'Ngày giờ', render: (_, d) => <Link to={`/operations/${d.id}`}><LocalTime date={d.local_date} time={d.local_time} tz={d.timezone} /></Link> },
+              { title: 'Ngày giờ', render: (_, d) => <><Link to={`/operations/${d.id}`}><LocalTime date={d.local_date} time={d.local_time} tz={d.timezone} /></Link><SlotTag slot={d.slot_no} /></> },
               { title: 'Tour', render: (_, d) => <>{d.tour_name}<div className="muted" style={{ fontSize: 12 }}>{d.option_name ?? 'Mọi gói'}</div></> },
               { title: 'Booking / kênh', render: (_, d) => <BookingMix bookings={d.booking_count} mix={d.channel_mix} isPrivate={d.is_private} /> },
               { title: 'Sức chứa', dataIndex: 'capacity', align: 'right' },

@@ -63,13 +63,25 @@ describe('xếp booking đang chờ', () => {
     expect(await waiting(w.org)).toBe(1)
   })
 
-  it('không tự gộp booking vào tour riêng', async () => {
+  it('tour riêng không bị gộp: mỗi booking một chuyến cùng giờ', async () => {
     const w = await makeWorld('plc5')
     await owner(`update public.tour_options set is_private = true where id = $1`, [w.option])
     await ingest(w, 'A', '2030-08-05')
     await ingest(w, 'B', '2030-08-05')
     const r = await rpc(user(w.ownerId), 'place_waiting_bookings', w.org, false, 12)
-    expect(r).toMatchObject({ placed: 1, created: 1, skipped_private: 1 })
+    expect(r).toMatchObject({ placed: 2, created: 2, skipped_private: 0 })
+    expect(await waiting(w.org)).toBe(0)
+    const deps = await owner<{ slot_no: number }>(`select slot_no from public.departures where organization_id = $1 order by slot_no`, [w.org])
+    expect(deps.map((d) => d.slot_no)).toEqual([1, 2])
+  })
+
+  it('tour riêng chưa có sức chứa thì booking thứ hai chờ xếp tay', async () => {
+    const w = await makeWorld('plc5b')
+    await owner(`update public.tour_options set is_private = true where id = $1`, [w.option])
+    await ingest(w, 'A', '2030-08-05')
+    await ingest(w, 'B', '2030-08-05')
+    await rpc(user(w.ownerId), 'create_departure', w.org, w.tour, w.option, '2030-08-05', '08:00', 'Asia/Ho_Chi_Minh', 12, null)
+    expect(await rpc(user(w.ownerId), 'place_waiting_bookings', w.org, false, null)).toMatchObject({ placed: 1, created: 0, skipped_private: 1 })
     expect(await waiting(w.org)).toBe(1)
   })
 
@@ -144,5 +156,67 @@ describe('sức chứa mặc định theo gói', () => {
     expect((await seats(busy)).committed).toBe(6)
 
     await expect(rpc(user(w.agent), 'apply_option_capacity', w.option)).rejects.toThrow(/forbidden/)
+  })
+})
+
+describe('nhiều chuyến cùng giờ', () => {
+  const trips = async (w: Awaited<ReturnType<typeof makeWorld>>, date: string) => owner<{ id: string; slot_no: number; capacity: number; seats: number }>(
+    `select d.id, d.slot_no, p.capacity, (select coalesce(sum(i.committed_seats), 0)::int from public.booking_items i where i.departure_id = d.id) seats
+     from public.departures d join public.inventory_pools p on p.id = d.inventory_pool_id
+     where d.organization_id = $1 and d.local_date = $2 order by d.slot_no`, [w.org, date])
+
+  it('hết chỗ thì mở chuyến tiếp theo, đoàn lớn đi trọn một chuyến', async () => {
+    const w = await makeWorld('slot1')
+    await owner(`update public.tour_options set default_capacity = 6 where id = $1`, [w.option])
+    await ingest(w, 'A', '2030-11-01', { pax: { adult: 4 } })
+    await ingest(w, 'B', '2030-11-01', { pax: { adult: 2 } })
+    await ingest(w, 'C', '2030-11-01', { pax: { adult: 3 } })
+    await ingest(w, 'D', '2030-11-01', { pax: { adult: 8 } })
+    const r = await rpc(user(w.ownerId), 'place_waiting_bookings', w.org, false, null)
+    expect(r).toMatchObject({ placed: 4, no_seats: 0 })
+    expect((await trips(w, '2030-11-01')).map((t) => [t.slot_no, t.capacity, t.seats])).toEqual([[1, 6, 6], [2, 6, 3], [3, 8, 8]])
+    expect(await waiting(w.org)).toBe(0)
+  })
+
+  it('booking mới tự vào chuyến cùng giờ còn chỗ', async () => {
+    const w = await makeWorld('slot2')
+    await owner(`update public.tour_options set default_capacity = 2 where id = $1`, [w.option])
+    await ingest(w, 'A', '2030-11-02')
+    await ingest(w, 'B', '2030-11-02')
+    await rpc(user(w.ownerId), 'place_waiting_bookings', w.org, false, null)
+    const [one, two] = await trips(w, '2030-11-02')
+    await owner(`update public.inventory_pools set capacity = 4 where id = (select inventory_pool_id from public.departures where id = $1)`, [two!.id])
+    await ingest(w, 'C', '2030-11-02')
+    const after = await trips(w, '2030-11-02')
+    expect(after.find((t) => t.id === one!.id)!.seats).toBe(2)
+    expect(after.find((t) => t.id === two!.id)!.seats).toBe(4)
+  })
+
+  it('tách chuyến quá sức chứa, không tách đoàn, không cần sửa trên kênh', async () => {
+    const w = await makeWorld('slot3')
+    const dep = (await rpc(user(w.ownerId), 'create_departure', w.org, w.tour, w.option, '2030-11-03', '08:00', 'Asia/Ho_Chi_Minh', 30, null)).departure_id as string
+    for (const [ref, n] of [['A', 13], ['B', 5], ['C', 3], ['D', 3]] as const) await ingest(w, ref, '2030-11-03', { pax: { adult: n } })
+    expect(await rpc(user(w.ownerId), 'split_departure', dep)).toMatchObject({ ok: false, code: 'no_default_capacity' })
+    await owner(`update public.tour_options set default_capacity = 6 where id = $1`, [w.option])
+    const r = await rpc(user(w.ownerId), 'split_departure', dep)
+    expect(r).toMatchObject({ ok: true, moved: 3, created: 2, failed: 0, kept: 13 })
+    expect(r.oversized).toEqual([expect.objectContaining({ seats: 13 })])
+    expect((await trips(w, '2030-11-03')).map((t) => [t.capacity, t.seats])).toEqual([[13, 13], [6, 5], [6, 6]])
+    const changes = await owner<{ channel_request_status: string }>(
+      `select c.channel_request_status from public.booking_changes c join public.bookings b on b.id = c.booking_id where b.organization_id = $1 and c.change_type = 'moved'`, [w.org])
+    expect(changes).toHaveLength(3)
+    expect(new Set(changes.map((c) => c.channel_request_status))).toEqual(new Set(['not_applicable']))
+    // Chạy lại không đổi gì thêm.
+    expect(await rpc(user(w.ownerId), 'split_departure', dep)).toMatchObject({ moved: 0, created: 0 })
+    await expect(rpc(user(w.agent), 'split_departure', dep)).rejects.toThrow(/forbidden/)
+  })
+
+  it('đổi sang ngày khác vẫn báo phải sửa trên kênh', async () => {
+    const w = await makeWorld('slot4')
+    await w.departure('2030-11-04', 5)
+    const other = await w.departure('2030-11-05', 5)
+    const a = await ingest(w, 'A', '2030-11-04')
+    const [item] = await owner<{ id: string }>(`select id from public.booking_items where booking_id = $1`, [a.booking_id])
+    expect(await rpc(user(w.operator), 'move_booking_item', item!.id, other)).toMatchObject({ ok: true, channel_request_status: 'manual_required' })
   })
 })

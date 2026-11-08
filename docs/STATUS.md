@@ -113,6 +113,10 @@ Mỗi gói có thể đặt "Sức chứa mỗi chuyến". Số này được d�
 
 Trang chuyến có tab "Sơ đồ đón": mỗi xe một tuyến, các điểm theo thứ tự ở tab Khách, gộp booking cùng khách sạn, kèm cảnh báo giờ đón sai thứ tự và booking chưa có điểm đón. Đây là sơ đồ thứ tự, không phải bản đồ, vì điểm đón chưa có tọa độ. Test `tour-core` phủ các nhánh. Trên trình duyệt đã xem một chuyến thật chưa chia xe, ở khung máy tính và 375 px; tuyến nhiều xe mới được kiểm bằng test.
 
+### Nhiều chuyến cùng giờ
+
+Một gói có thể có nhiều chuyến cùng ngày giờ (`slot_no`), để giữ mỗi chuyến trong sức chứa của gói. "Xếp booking đang chờ" tự mở chuyến tiếp theo khi đầy, tour riêng mỗi booking một chuyến, và nút "Tách chuyến" trên trang chuyến chia lại chuyến đang quá sức chứa. Booking không bị tách: đoàn lớn hơn sức chứa đi trọn một chuyến với sức chứa bằng số khách. Đổi giữa các chuyến cùng giờ không tính là phải sửa trên kênh. Lúc nhập file, booking chỉ tự vào một chuyến cùng giờ còn chỗ; nếu chỗ không đủ cho cả đoàn thì nằm ở hàng chờ để "Xếp booking đang chờ" xử lý. Test database phủ các nhánh. Hanoi Jeep đã được tách bằng đúng hàm này, nhưng nút "Tách chuyến" trên giao diện chưa được bấm thử.
+
 ## Chưa kiểm chứng
 
 | Hạng mục | Vì sao |

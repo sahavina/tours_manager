@@ -68,6 +68,7 @@ Xóa mềm bằng `deleted_at`. RLS chặn UPDATE là khớp 0 dòng, không bá
 | `ops_board(p_org, p_from, p_to)` | `ops.read` | |
 | `departure_manifest(p_departure)` | `ops.read` hoặc `departure.read` | |
 | `assignment_conflicts(p_departure)` | `ops.read` | HDV và xe đang ở chuyến khác chồng giờ với chuyến này, mức `overlap` hoặc `possible` |
+| `split_departure(p_departure)` | `departure.manage` và `ops.manage` | Tách chuyến quá sức chứa của gói sang các chuyến cùng giờ, không tách booking |
 | `apply_option_capacity(p_option)` | `departure.manage` | Áp sức chứa mặc định của gói cho các chuyến sắp chạy, bỏ qua chuyến đã có nhiều khách hơn hoặc dùng chung nguồn chỗ |
 | `place_waiting_bookings(p_org, p_dry_run, p_create_capacity)` | `ops.manage`, tạo chuyến cần thêm `departure.manage` | Xếp hàng loạt booking đã ghép mã đang chờ chuyến |
 | `assign_guide`, `unassign_guide` | `ops.manage` | |
