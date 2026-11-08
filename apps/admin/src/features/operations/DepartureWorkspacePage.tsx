@@ -97,7 +97,7 @@ export function DepartureWorkspacePage() {
     <>
       <PageHead title={<Space wrap>{d.tour_name}<LocalTime date={d.local_date} time={d.local_time} tz={d.timezone} /><SlotTag slot={d.slot_no} /></Space>} extra={
         <>
-          {d.status === 'scheduled' && d.default_capacity && d.departure_seats > d.default_capacity && can('ops.manage') && can('departure.manage') && (
+          {d.status === 'scheduled' && dayjs(d.starts_at).isAfter(dayjs()) && d.default_capacity && d.departure_seats > d.default_capacity && can('ops.manage') && can('departure.manage') && (
             <Popconfirm title={`Tách chuyến này theo sức chứa ${d.default_capacity} khách?`} okText="Tách chuyến" cancelText="Hủy"
               description="Khách dư chuyển sang chuyến khác cùng giờ, không tách đoàn. Xe đã chia của khách được chuyển sẽ phải chia lại." onConfirm={() => split.mutate()}>
               <Button loading={split.isPending}>Tách chuyến</Button>

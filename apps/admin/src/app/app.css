@@ -39,3 +39,8 @@ pre.payload { background: #0f172a; color: #e2e8f0; padding: 12px; border-radius:
 .pickup-end .pickup-node { background: #334155; }
 .pickup-body { min-width: 0; padding-top: 2px; }
 .pickup-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.pickup-map { height: 380px; border-radius: 8px; border: 1px solid #f0f0f0; margin-bottom: 16px; z-index: 0; }
+.pickup-map.picking { cursor: crosshair; outline: 2px solid #0f766e; }
+.pickup-map.picking .leaflet-container, .pickup-map.picking.leaflet-grab { cursor: crosshair; }
+.pickup-marker span { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; border: 2px solid #fff; color: #fff; font-size: 12px; font-weight: 600; box-shadow: 0 1px 4px rgba(0, 0, 0, .4); }
+.pickup-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }

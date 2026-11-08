@@ -117,6 +117,10 @@ Trang chuyến có tab "Sơ đồ đón": mỗi xe một tuyến, các điểm t
 
 Một gói có thể có nhiều chuyến cùng ngày giờ (`slot_no`), để giữ mỗi chuyến trong sức chứa của gói. "Xếp booking đang chờ" tự mở chuyến tiếp theo khi đầy, tour riêng mỗi booking một chuyến, và nút "Tách chuyến" trên trang chuyến chia lại chuyến đang quá sức chứa. Booking không bị tách: đoàn lớn hơn sức chứa đi trọn một chuyến với sức chứa bằng số khách. Đổi giữa các chuyến cùng giờ không tính là phải sửa trên kênh. Lúc nhập file, booking chỉ tự vào một chuyến cùng giờ còn chỗ; nếu chỗ không đủ cho cả đoàn thì nằm ở hàng chờ để "Xếp booking đang chờ" xử lý. Test database phủ các nhánh. Hanoi Jeep đã được tách bằng đúng hàm này, nhưng nút "Tách chuyến" trên giao diện chưa được bấm thử.
 
+### Bản đồ và tối ưu thứ tự đón
+
+Tab "Sơ đồ đón" có bản đồ OpenStreetMap (Leaflet). Nút "Tìm vị trí" gửi tên và địa chỉ khách sạn đến Nominatim, rồi Photon, không gửi thông tin khách; chỉ nhận kết quả khi tên khớp, không thì dùng tên phố và báo gần đúng, hoặc để đặt tay. Tọa độ lưu ở `booking_pickups`, dùng lại cho cùng khách sạn và không bị đồng bộ từ kênh xóa. Nút đề xuất thứ tự tính theo đường chim bay, chưa tính đường một chiều, kẹt xe hay giờ hẹn; điểm xuất phát của xe chưa được cấu hình, nên chuyến đi bắt đầu từ điểm xa trung tâm nhóm. Giờ đón không tự đổi. Đã thử tìm vị trí và áp dụng thứ tự trên hai chuyến thật. Chưa thử trên trình duyệt: kéo điểm, đặt điểm tay và chuyến nhiều xe. Nominatim, Photon và máy chủ bản đồ công cộng có giới hạn sử dụng, khi lên production cần xem lại nhà cung cấp.
+
 ## Chưa kiểm chứng
 
 | Hạng mục | Vì sao |

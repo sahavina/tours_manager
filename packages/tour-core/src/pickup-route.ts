@@ -3,6 +3,9 @@
 
 export type PickupRow = {
   booking_id: string
+  item_id?: string
+  latitude?: number | string | null
+  longitude?: number | string | null
   code: string
   pax_total: number
   hotel_name?: string | null
@@ -21,6 +24,10 @@ export type PickupStop = {
   time?: string
   pax: number
   bookings: string[]
+  /** Các dòng booking của điểm này, dùng khi lưu tọa độ và sắp thứ tự. */
+  items: string[]
+  /** Chưa có khi chưa tìm được vị trí trên bản đồ. */
+  position?: { lat: number; lng: number }
   /** Booking chung điểm đón nhưng ghi giờ đón khác nhau. */
   mixedTimes: boolean
   /** Đón sau điểm liền trước theo thứ tự nhưng giờ lại sớm hơn. */
@@ -80,14 +87,19 @@ export function buildPickupRoute(
     const name = shortPlaceName(raw)
     const key = fold(name)
     const time = hhmm(r.pickup_local_time)
+    const lat = r.latitude == null ? NaN : Number(r.latitude)
+    const lng = r.longitude == null ? NaN : Number(r.longitude)
+    const position = Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : undefined
     const stop = lane.stops.find((s) => s.key === key)
     if (stop) {
       stop.pax += r.pax_total
       stop.bookings.push(r.code)
+      if (r.item_id) stop.items.push(r.item_id)
+      if (!stop.position && position) stop.position = position
       if (time && stop.time && time !== stop.time) stop.mixedTimes = true
       if (time && (!stop.time || time < stop.time)) stop.time = time
     } else {
-      lane.stops.push({ key, name, area: placeArea(raw), full: raw, time, pax: r.pax_total, bookings: [r.code], mixedTimes: false, outOfOrder: false, afterDeparture: false })
+      lane.stops.push({ key, name, area: placeArea(raw), full: raw, time, pax: r.pax_total, bookings: [r.code], items: r.item_id ? [r.item_id] : [], position, mixedTimes: false, outOfOrder: false, afterDeparture: false })
     }
   }
 
