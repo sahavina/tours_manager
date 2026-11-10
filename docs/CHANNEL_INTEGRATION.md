@@ -76,6 +76,26 @@ Màn hình: **Kết nối kênh > Sản phẩm kênh**.
 | Kéo lịch và số chỗ | **Không thấy nêu.** Viator gọi `post/v2/availability/check`, `calendar` vào hệ thống của bạn; bạn đẩy `post/v2/notification/events` | Khi kết nối thật, SAHA Tour Hub là nguồn số chỗ, không phải bên nhận. Ảnh chụp lịch hiện chỉ có ở bộ mô phỏng |
 | Partner API (`/products/...`) | Trang tài liệu không đọc được. Merchant và Affiliate là chương trình cho đối tác phân phối | Chưa xác minh. Không giả định nhà tổ chức tour dùng được, hay nó trả booking của bạn |
 
+### Đọc lại 2026-11-10: điều kiện trước khi làm
+
+Trang https://docs.viator.com/supplier-api/technical/ ghi rõ: quyền dùng API chỉ dành cho nhà tổ chức tour đã đăng ký với Viator và **reservation system được họ cho phép**; tích hợp chỉ được tiến hành sau khi Viator **đánh giá kỹ thuật và phê duyệt chính thức**, và chỉ bắt đầu phát triển khi nhà tổ chức tour đã dùng reservation system đó.
+
+Quy trình Viator nêu: họp khởi động với Viator → thống nhất phạm vi → rà đặc tả → phát triển → Viator dựng môi trường thử → chạy thử chứng nhận qua email → Viator cấu hình production → bật cho vài sản phẩm → mở hết. **Không có môi trường thử tự phục vụ** như cổng Integrator của GetYourGuide.
+
+Endpoint trong đặc tả (OpenAPI tải từ trang trên):
+
+| Viator gọi vào mình | Mình gọi Viator |
+|---|---|
+| `POST /tourlist` (v1, danh sách sản phẩm và option) | `POST /v2/notification/events` (báo thay đổi chỗ, giá) |
+| `POST /v2/availability/check`, `POST /v2/availability/calendar` (bắt buộc) | `POST /v2/notification/special-offers` |
+| `POST /v2/reserve` | `POST /v2/mappings/catalog`, `connect`, `disconnect` (Beta) |
+| `POST /booking`, `/booking-amendment`, `/booking-cancellation` (v1) | |
+| `POST /redemption`, `POST /v2/product/special-offers` | |
+
+Xác thực v2 bằng header API key; chỉ JSON. Lõi giữ chỗ, đặt chỗ, hủy và cách tính chỗ của cổng GetYourGuide dùng lại được; phần cần viết mới là lớp dịch định dạng Viator, có thêm đổi booking (`booking-amendment`) và lịch giá theo ngày (`calendar`).
+
+**Không bắt đầu viết cổng Viator trước khi Viator đồng ý**, vì điều khoản của họ yêu cầu như vậy.
+
 ### Cần xác định về tài khoản
 
 Hiện chưa rõ tài khoản đang có quyền gì. Cách kiểm tra:
@@ -165,6 +185,12 @@ Chưa làm: tiền theo `retailPrice`, `GROUP`, sản phẩm theo khoảng giờ
 3. Worker: `wrangler secret put SUPABASE_SERVICE_ROLE_KEY`, `GYG_INBOUND_USERNAME`, `GYG_INBOUND_PASSWORD`; đặt `SUPABASE_URL`, `GYG_CONNECTION_ID`; `pnpm --filter @tours/gyg-gateway deploy`. Khai URL Worker và tên đăng nhập, mật khẩu trên cổng Integrator.
 4. `tour-worker`: đặt `GYG_API_BASE`, `GYG_API_USERNAME`, `GYG_API_PASSWORD`, và phải chạy liên tục.
 5. Database cần gói có sao lưu và không tự tạm dừng: gói Free của Supabase không đạt yêu cầu 99,8%.
+
+## Màn Kết nối API (2026-11-10)
+
+**Kết nối kênh → Kết nối API**: mỗi kết nối GetYourGuide, Viator có danh sách bước, cấu hình (phê duyệt, mã nhà cung cấp, địa chỉ cổng https, tên bí mật, thời hạn giữ chỗ) và bảng endpoint. Bước chỉ được tick khi có bằng chứng trong hệ thống: mã đã khai, ánh xạ đã kiểm tra, cổng trả lời `/health`, kênh đã giữ hoặc đặt chỗ thành công (`last_success_at`), worker đã gửi báo chỗ. Viator hiện điều kiện phải được duyệt trước khi viết cổng.
+
+Kết nối API có cờ `is_api` (tạo bằng `api_connection_create`, bắt đầu ở Sandbox). Tài khoản nhập file của cùng kênh không có cờ này: cổng từ chối và worker không báo chỗ thay chúng, kể cả khi chúng ở chế độ Production.
 
 ## Các bước để kết nối thật
 

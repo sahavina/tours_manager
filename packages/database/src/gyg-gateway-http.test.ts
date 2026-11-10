@@ -17,8 +17,8 @@ const rpc: Rpc = async (fn, args) => {
 beforeAll(async () => {
   w = await makeWorld('gyghttp')
   const [c] = await owner<{ id: string }>(
-    `insert into public.channel_connections (organization_id, channel, account_name, mode, status, supplier_account_ref, hold_ttl_seconds)
-     values ($1, 'getyourguide', 'GYG http', 'sandbox', 'not_configured', 'SUP-H', 3600) returning id`,
+    `insert into public.channel_connections (organization_id, channel, account_name, mode, status, supplier_account_ref, hold_ttl_seconds, is_api)
+     values ($1, 'getyourguide', 'GYG http', 'sandbox', 'not_configured', 'SUP-H', 3600, true) returning id`,
     [w.org],
   )
   await owner(

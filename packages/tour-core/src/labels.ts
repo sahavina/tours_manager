@@ -77,6 +77,7 @@ const RESULT_CODES: Record<string, string> = {
   production_needs_approval: 'Chỉ chuyển Production sau khi kênh đã phê duyệt.',
   verified_needs_target: 'Phải chọn gói nội bộ trước khi xác nhận ánh xạ.',
   duplicate_connection: 'Tài khoản này đã tồn tại.',
+  invalid_endpoint_url: 'Địa chỉ cổng phải bắt đầu bằng https:// và không có khoảng trắng.',
   not_retryable: 'Sự kiện này không ở trạng thái lỗi.',
   user_not_found: 'Chưa có tài khoản với email này. Hãy tạo tài khoản trước.',
   cannot_deactivate_self: 'Không thể tự khóa tài khoản của mình.',

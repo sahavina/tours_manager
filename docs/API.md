@@ -128,7 +128,8 @@ Chỉ `service_role`, chỉ kết nối `getyourguide`. Cổng `apps/gyg-gateway
 
 | Hàm | Quyền | Mã lỗi |
 |---|---|---|
-| `connection_create`, `connection_update` | `connection.manage` | `duplicate_connection`, `production_needs_approval` |
+| `connection_create`, `connection_update` | `connection.manage` | `duplicate_connection`, `production_needs_approval`, `invalid_endpoint_url`. Chuỗi rỗng xóa `endpoint_url`, `supplier_account_ref` |
+| `api_connection_create(p_org, p_channel, p_account)` | `connection.manage` | Kết nối API (`is_api`) cho viator, getyourguide, bắt đầu Sandbox. `duplicate_connection`, `invalid_input` |
 | `mapping_save(...)` | `connection.manage` | `verified_needs_target`. Trả `placed` |
 | `retry_event(p_event)` | `connection.manage` | `not_retryable` |
 | `connection_mark_health` | Chỉ `service_role` | |

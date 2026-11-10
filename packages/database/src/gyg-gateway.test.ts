@@ -23,8 +23,8 @@ async function vacancies(date: string) {
 beforeAll(async () => {
   w = await makeWorld('gyg')
   const [c] = await owner<{ id: string }>(
-    `insert into public.channel_connections (organization_id, channel, account_name, mode, status, supplier_account_ref, hold_ttl_seconds)
-     values ($1, 'getyourguide', 'GYG thử', 'sandbox', 'not_configured', 'SUP-1', 3600) returning id`,
+    `insert into public.channel_connections (organization_id, channel, account_name, mode, status, supplier_account_ref, hold_ttl_seconds, is_api)
+     values ($1, 'getyourguide', 'GYG thử', 'sandbox', 'not_configured', 'SUP-1', 3600, true) returning id`,
     [w.org],
   )
   gyg = c!.id

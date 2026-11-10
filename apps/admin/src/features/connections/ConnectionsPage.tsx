@@ -7,6 +7,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
 import { Can, ConnectionBadge, ErrorState, EventStatusTag, fmtDateTime, NoData, PageHead } from '../../components/common'
 import { CONNECTION_COLUMNS, friendlyError, rpcOk, supabase, unwrap, type Row } from '../../lib/supabase'
+import { ApiConnectionsTab } from './ApiConnectionsTab'
 import { CatalogTab } from './CatalogTab'
 import { Simulator } from './Simulator'
 
@@ -82,7 +83,7 @@ function ConnectionsTab() {
   })
   return (
     <>
-      <Alert type="warning" showIcon style={{ marginBottom: 12 }} message="Chưa có kết nối thật với Viator hay GetYourGuide. Kết nối thật cần hợp đồng và phê duyệt của từng nền tảng; hiện chỉ có connector mô phỏng." />
+      <Alert type="warning" showIcon style={{ marginBottom: 12 }} message="Chưa có kết nối thật nào đang chạy với Viator hay GetYourGuide. Kết nối thật cần phê duyệt của từng nền tảng; theo dõi các bước ở tab Kết nối API. Nút dưới đây chỉ tạo tài khoản mô phỏng." />
       <div className="filters"><div style={{ flex: 1 }} /><Can perm="connection.manage"><Button type="primary" onClick={() => setCreating(true)}>Thêm tài khoản</Button></Can></div>
       {list.isError ? <ErrorState error={list.error} onRetry={() => list.refetch()} /> : (
         <Table rowKey="id" size="middle" loading={list.isLoading} dataSource={list.data} pagination={false} scroll={{ x: 'max-content' }} locale={{ emptyText: <NoData text="Chưa có kết nối" /> }} columns={[
@@ -264,6 +265,7 @@ export function ConnectionsPage() {
       <Card>
         <Tabs activeKey={tab} onChange={(k) => setParams(k === 'connections' ? {} : { tab: k }, { replace: true })} items={[
           { key: 'connections', label: 'Tài khoản kênh', children: <ConnectionsTab /> },
+          { key: 'api', label: 'Kết nối API', children: <ApiConnectionsTab /> },
           { key: 'catalog', label: 'Sản phẩm kênh', children: <CatalogTab /> },
           { key: 'mappings', label: 'Ghép mã sản phẩm', children: <MappingsTab /> },
           { key: 'events', label: 'Nhật ký đồng bộ', children: <EventsTab /> },

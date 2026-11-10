@@ -39,7 +39,8 @@ export function postgrestRpc(env: Pick<Env, 'SUPABASE_URL' | 'SUPABASE_SERVICE_R
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url)
-    if (url.pathname === '/health') return new Response('ok')
+    // Màn Kết nối API gọi từ trình duyệt để kiểm tra cổng còn chạy. Chỉ trả "ok", không có dữ liệu.
+    if (url.pathname === '/health') return new Response('ok', { headers: { 'access-control-allow-origin': '*' } })
     if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY || !env.GYG_CONNECTION_ID) {
       return new Response(JSON.stringify({ errorCode: 'INTERNAL_SYSTEM_FAILURE', errorMessage: 'Gateway is not configured.' }), {
         status: 200,
