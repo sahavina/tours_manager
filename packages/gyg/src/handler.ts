@@ -20,6 +20,8 @@ export type GatewayConfig = {
   password: string
   rpc: Rpc
   log?: (entry: Record<string, unknown>) => void
+  /** Trả false khi khóa (thường là IP) đã vượt giới hạn. Kiểm tra trước cả mật khẩu để chặn dò mật khẩu. */
+  allow?: (key: string) => Promise<boolean>
 }
 
 const MAX_BODY = 64 * 1024
@@ -194,6 +196,15 @@ export function createGateway(cfg: GatewayConfig): (req: Request) => Promise<Res
     const url = new URL(req.url)
     let result: unknown
     let route = 'unknown'
+    const key = req.headers.get('cf-connecting-ip') ?? 'unknown'
+    if (cfg.allow && !(await cfg.allow(key).catch(() => true))) {
+      // Bộ đếm lỗi thì cho qua: thà nhận thêm lệnh còn hơn chặn nhầm booking thật.
+      cfg.log?.({ method: req.method, path: url.pathname, route, errorCode: 'RATE_LIMIT_EXCEEDED', ms: Date.now() - started })
+      return new Response(JSON.stringify(gygError('RATE_LIMIT_EXCEEDED', 'Too many requests, please retry later.')), {
+        status: 429,
+        headers: { 'content-type': 'application/json', 'retry-after': '60' },
+      })
+    }
     if (!(await authorized(req, cfg))) {
       result = gygError('AUTHORIZATION_FAILURE', 'The provided authentication credentials are not valid.')
     } else {

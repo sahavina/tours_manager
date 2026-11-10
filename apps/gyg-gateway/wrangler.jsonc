@@ -5,6 +5,9 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "observability": { "enabled": true },
+  // Mỗi IP tối đa 1000 lệnh/phút (khoảng 60.000/giờ, trên mức ví dụ 30.000/giờ trong tài liệu GetYourGuide).
+  // namespace_id là số tự chọn, duy nhất trong tài khoản Cloudflare.
+  "ratelimits": [{ "name": "RATE_LIMITER", "namespace_id": "4101", "simple": { "limit": 1000, "period": 60 } }],
   "vars": {
     "SUPABASE_URL": "",
     "GYG_CONNECTION_ID": ""

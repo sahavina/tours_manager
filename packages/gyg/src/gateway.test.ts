@@ -52,6 +52,28 @@ describe('xác thực', () => {
     expect(calls).toHaveLength(0)
   })
 
+  it('vượt giới hạn: HTTP 429 RATE_LIMIT_EXCEEDED trước cả bước kiểm tra mật khẩu; bộ đếm lỗi thì cho qua', async () => {
+    const seen: string[] = []
+    let calls = 0
+    const mk = (allow: (k: string) => Promise<boolean>) =>
+      createGateway({ connectionId: 'c', username: 'gyg', password: 'bi-mat', rpc: async () => (calls++, { ok: true }), allow })
+    const req = (auth: string) =>
+      new Request('https://gw.test/1/cancel-reservation/', {
+        method: 'POST',
+        headers: { authorization: auth, 'cf-connecting-ip': '203.0.113.9' },
+        body: JSON.stringify({ data: { reservationReference: 'R', gygBookingReference: 'G' } }),
+      })
+    const blocked = await mk(async (k) => (seen.push(k), false))(req('Basic sai'))
+    expect(blocked.status).toBe(429)
+    expect(((await blocked.json()) as any).errorCode).toBe('RATE_LIMIT_EXCEEDED')
+    expect(seen).toEqual(['203.0.113.9'])
+    expect(calls).toBe(0)
+    const broken = await mk(async () => {
+      throw new Error('binding lỗi')
+    })(req(AUTH))
+    expect(await broken.json()).toEqual({ data: {} })
+  })
+
   it('cấu hình thiếu mật khẩu thì từ chối mọi yêu cầu', async () => {
     const gw = createGateway({ connectionId: 'c', username: '', password: '', rpc: async () => ({ ok: true }) })
     const res = await gw(new Request('https://gw.test/1/reserve/', { method: 'POST', headers: { authorization: `Basic ${btoa(':')}` }, body: '{}' }))

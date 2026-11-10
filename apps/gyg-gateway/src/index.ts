@@ -12,6 +12,8 @@ export interface Env {
   GYG_CONNECTION_ID: string
   GYG_INBOUND_USERNAME: string
   GYG_INBOUND_PASSWORD: string
+  /** Binding ratelimits trong wrangler.jsonc; thiếu thì không giới hạn. */
+  RATE_LIMITER?: { limit(opts: { key: string }): Promise<{ success: boolean }> }
 }
 
 // GetYourGuide ngắt sau 10 giây với reserve/book; dừng sớm hơn để còn trả INTERNAL_SYSTEM_FAILURE.
@@ -50,6 +52,7 @@ export default {
       password: env.GYG_INBOUND_PASSWORD,
       rpc: postgrestRpc(env),
       log: (e) => console.log(JSON.stringify(e)),
+      allow: env.RATE_LIMITER ? async (key) => (await env.RATE_LIMITER!.limit({ key })).success : undefined,
     })
     return gateway(req)
   },

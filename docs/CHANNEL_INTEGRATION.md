@@ -11,7 +11,7 @@
 | Lõi nhận sự kiện, giữ chỗ, đặt, hủy, chống trùng, retry | Xong, đã test |
 | Thời hạn giữ chỗ theo từng kết nối | Xong |
 | Cổng HTTP nhận yêu cầu từ kênh | GetYourGuide: **bản thử**, chưa deploy (xem mục Cổng GetYourGuide). Viator: chưa làm |
-| Xác minh khóa theo từng kênh, rate limit cổng | GetYourGuide: HTTP Basic xong; rate limit chưa làm. Viator: chưa làm |
+| Xác minh khóa theo từng kênh, rate limit cổng | GetYourGuide: HTTP Basic và giới hạn theo IP xong. Viator: chưa làm |
 | Dịch payload thật sang dữ liệu chuẩn hóa | GetYourGuide: xong theo đặc tả, chưa thử với GetYourGuide. Viator: chưa làm |
 | Đẩy tình trạng chỗ về kênh | GetYourGuide: worker gửi khi có `GYG_API_*`, chưa thử với GetYourGuide. Kênh khác: ghi `needs_connector` |
 | Đăng ký, chứng nhận với nền tảng | **Chưa làm**, cần doanh nghiệp thực hiện |
@@ -150,9 +150,13 @@ Quy ước đã chọn:
 
 Đã sửa kèm một lỗi lõi: khi chỗ giữ lấp kín chuyến 1 mà chuyến 2 cùng giờ còn trống, `channel_book` xếp nhầm sang chuyến 2 rồi báo hết chỗ. Giờ `_resolve_item` ưu tiên chuyến của chỗ giữ.
 
-Kiểm chứng: 14 test hàm database, 2 test trọn luồng HTTP tới Postgres, 15 test lớp HTTP, chạy thử qua PostgREST của dev stack (doanh nghiệp `gyg-smoke`, không có thành viên), `wrangler deploy --dry-run` build được.
+Kiểm chứng: 14 test hàm database, 2 test trọn luồng HTTP tới Postgres, 16 test lớp HTTP, 2 test worker báo chỗ, chạy thử qua PostgREST của dev stack (doanh nghiệp `gyg-smoke`, không có thành viên), `wrangler deploy --dry-run` build được.
 
-Chưa làm: rate limit (`RATE_LIMIT_EXCEEDED`), tiền theo `retailPrice`, `GROUP`, sản phẩm theo khoảng giờ (time period), add-on, `/1/notify/`, đổi giá qua API, hủy booking sát giờ bị từ chối.
+Giới hạn: binding `ratelimits` của Cloudflare, 1000 lệnh/phút mỗi IP, kiểm tra trước mật khẩu; vượt thì HTTP 429 `RATE_LIMIT_EXCEEDED`. Bộ đếm lỗi thì cho qua để không chặn nhầm booking.
+
+Supabase Cloud (project `saha-tour-hub`) đã có migration này từ 2026-11-10; kết nối GetYourGuide chưa được tạo ở đó.
+
+Chưa làm: tiền theo `retailPrice`, `GROUP`, sản phẩm theo khoảng giờ (time period), add-on, `/1/notify/`, đổi giá qua API, hủy booking sát giờ bị từ chối.
 
 Để chạy thật:
 
