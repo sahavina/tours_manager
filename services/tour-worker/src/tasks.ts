@@ -2,6 +2,7 @@
 // thăm dò theo chu kỳ nên độ trễ bằng chu kỳ thăm dò, và lưu lượng rất lớn sẽ đè lên database. Đổi sang
 // Redis/BullMQ khi cần: chỉ thay file này, các RPC worker_* không đổi.
 import { mockAvailability, mockCatalog } from '@tours/channels'
+import { sendAvailabilityUpdate, type NotifyConfig, type NotifyTarget } from '@tours/gyg'
 import type { Pool, PoolClient } from 'pg'
 
 export type Log = (level: 'info' | 'warn' | 'error', msg: string, extra?: Record<string, unknown>) => void
@@ -33,17 +34,59 @@ export async function retryEvents(pool: Pool): Promise<number> {
   })
 }
 
+/** Thông tin gọi GetYourGuide, chỉ có khi đủ cả ba biến môi trường. */
+export function gygNotifyConfig(env: NodeJS.ProcessEnv = process.env): NotifyConfig | null {
+  const { GYG_API_BASE, GYG_API_USERNAME, GYG_API_PASSWORD } = env
+  if (!GYG_API_BASE || !GYG_API_USERNAME || !GYG_API_PASSWORD) return null
+  return { baseUrl: GYG_API_BASE, username: GYG_API_USERNAME, password: GYG_API_PASSWORD }
+}
+
 /**
- * Xử lý outbox: dựng thông báo nội bộ và ghi nhận việc đẩy tình trạng chỗ. Với kết nối mô phỏng, việc
- * đẩy chỉ được ghi sync_job có nhãn simulated: KHÔNG có request nào đi ra ngoài, và connector thật
- * chưa tồn tại, nên kết nối không-mock có khả năng này bị ghi needs_connector thay vì báo thành công.
+ * Báo số chỗ mới của một chuyến cho GetYourGuide (bắt buộc theo tài liệu GetYourGuide). Trả id các kết nối
+ * đã xử lý để phần ghi needs_connector bỏ qua chúng. Mỗi lần gửi ghi một sync_job, thành công hay lỗi.
  */
-export async function drainOutbox(pool: Pool, log: Log, limit = 50): Promise<number> {
+export async function pushGygAvailability(
+  pool: Pool,
+  log: Log,
+  e: { id: number; organization_id: string; aggregate_id: string },
+  cfg: NotifyConfig | null,
+  fetchFn: typeof fetch = fetch,
+): Promise<string[]> {
+  if (!cfg) return []
+  const { rows } = await pool.query<{ r: NotifyTarget[] }>('select public.worker_gyg_availability($1) as r', [e.aggregate_id])
+  const targets = rows[0]?.r ?? []
+  for (const t of targets) {
+    let outcome: Record<string, unknown>
+    try {
+      const res = await sendAvailabilityUpdate(cfg, t, fetchFn)
+      outcome = { outcome: res.ok ? 'sent' : 'rejected', http_status: res.status, error_code: res.errorCode ?? null }
+      if (!res.ok) log('warn', 'GetYourGuide từ chối cập nhật chỗ', { connection_id: t.connection_id, status: res.status, error_code: res.errorCode })
+    } catch (err) {
+      outcome = { outcome: 'failed', message: err instanceof Error ? err.message : String(err) }
+      log('error', 'không gửi được cập nhật chỗ tới GetYourGuide', { connection_id: t.connection_id, ...outcome })
+    }
+    await pool.query(
+      `insert into public.sync_jobs (organization_id, connection_id, kind, status, detail, finished_at)
+       values ($1, $2, 'availability_push', $3, $4, now())`,
+      [e.organization_id, t.connection_id, outcome.outcome === 'sent' ? 'done' : 'failed', { ...outcome, product_id: t.product_id, outbox_id: e.id }],
+    )
+  }
+  return [...new Set(targets.map((t) => t.connection_id))]
+}
+
+/**
+ * Xử lý outbox: dựng thông báo nội bộ và ghi nhận việc đẩy tình trạng chỗ. Kết nối GetYourGuide thật được
+ * báo chỗ khi đã cấu hình GYG_API_*. Với kết nối mô phỏng, việc đẩy chỉ được ghi sync_job có nhãn
+ * simulated: KHÔNG có request nào đi ra ngoài; kết nối không-mock chưa có connector bị ghi needs_connector
+ * thay vì báo thành công.
+ */
+export async function drainOutbox(pool: Pool, log: Log, limit = 50, gyg: NotifyConfig | null = gygNotifyConfig()): Promise<number> {
   const { rows } = await pool.query('select * from public.worker_claim_outbox($1)', [limit])
   for (const e of rows) {
     try {
       await pool.query('select public.worker_notify($1)', [e.id])
       if (e.topic === 'availability.changed') {
+        const pushed = await pushGygAvailability(pool, log, e, gyg)
         await pool.query(
           `insert into public.sync_jobs (organization_id, connection_id, kind, status, detail, finished_at)
            select c.organization_id, c.id, 'availability_push', 'done',
@@ -51,11 +94,12 @@ export async function drainOutbox(pool: Pool, log: Log, limit = 50): Promise<num
            from public.channel_connections c
            where c.organization_id = $1 and c.status <> 'disabled'
              and c.capabilities ->> 'provide_availability' = 'supported'
+             and not (c.id = any($3::uuid[]))
              and not exists (
                select 1 from public.sync_jobs j
                where j.connection_id = c.id and j.kind = 'availability_push' and j.created_at > now() - interval '1 minute'
              )`,
-          [e.organization_id, e.id],
+          [e.organization_id, e.id, pushed],
         )
       }
       await pool.query('select public.worker_finish_outbox($1, null)', [e.id])

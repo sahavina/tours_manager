@@ -10,10 +10,10 @@
 | Connector mô phỏng và 8 kịch bản | Xong |
 | Lõi nhận sự kiện, giữ chỗ, đặt, hủy, chống trùng, retry | Xong, đã test |
 | Thời hạn giữ chỗ theo từng kết nối | Xong |
-| Cổng HTTP nhận yêu cầu từ kênh | **Chưa làm** |
-| Xác minh khóa theo từng kênh, rate limit cổng | **Chưa làm** |
-| Dịch payload thật sang dữ liệu chuẩn hóa | **Chưa làm** |
-| Đẩy tình trạng chỗ về kênh | **Chưa làm**, worker chỉ ghi `needs_connector` |
+| Cổng HTTP nhận yêu cầu từ kênh | GetYourGuide: **bản thử**, chưa deploy (xem mục Cổng GetYourGuide). Viator: chưa làm |
+| Xác minh khóa theo từng kênh, rate limit cổng | GetYourGuide: HTTP Basic xong; rate limit chưa làm. Viator: chưa làm |
+| Dịch payload thật sang dữ liệu chuẩn hóa | GetYourGuide: xong theo đặc tả, chưa thử với GetYourGuide. Viator: chưa làm |
+| Đẩy tình trạng chỗ về kênh | GetYourGuide: worker gửi khi có `GYG_API_*`, chưa thử với GetYourGuide. Kênh khác: ghi `needs_connector` |
 | Đăng ký, chứng nhận với nền tảng | **Chưa làm**, cần doanh nghiệp thực hiện |
 
 ## Tài liệu đã đọc
@@ -122,6 +122,46 @@ Tài liệu không nêu: nơi đăng ký quyền, sandbox đầy đủ, quy trì
 
 Cổng nhà cung cấp không có mục API hay kết nối trong menu, chỉ có liên kết "API Integration" và "Reservation System Integration" ở chân trang. Có nút "Download bookings" ở trang booking, chưa thử định dạng file.
 
+## Cổng GetYourGuide (bản thử, 2026-11-10)
+
+Đọc lại tài liệu ngày 2026-11-10: changelog vẫn bản 49 (23/09/2026). Cổng Integrator (https://integrator.getyourguide.com) cho tự đăng ký, cấu hình, thử và theo dõi kết nối. Bắt buộc: hỏi chỗ, giữ, hủy giữ, đặt, hủy đặt, và báo cập nhật chỗ. Uptime 99,8%/tháng; reserve < 3 giây, book < 4 giây ở phân vị 95; quá 27 giây bị ngắt.
+
+**Đã chạy thử trên máy, chưa thử với GetYourGuide.** Chưa có thông tin đăng nhập GetYourGuide, chưa deploy.
+
+| Phần | Ở đâu |
+|---|---|
+| Luật chỗ, chống trùng, đổi booking | `supabase/migrations/20261110100000_gyg_gateway.sql`, các hàm `gateway_gyg_*` chỉ `service_role` gọi được |
+| Dịch định dạng, Basic auth, mã lỗi | `packages/gyg` (`@tours/gyg`) |
+| Cloudflare Worker công khai | `apps/gyg-gateway`, cấu hình trong `wrangler.jsonc` |
+| Báo cập nhật chỗ | `services/tour-worker`, hàm `pushGygAvailability`, đọc `worker_gyg_availability` |
+
+Quy ước đã chọn:
+
+- `productId` = mã sản phẩm của ánh xạ **đã kiểm tra** (`external_option_code` rỗng), mỗi mã một gói. GetYourGuide lấy danh sách qua `/1/suppliers/{supplierAccountRef}/products/`.
+- Số chỗ báo đi = số chỗ trống của **chuyến trống nhất** ở giờ đó, không cộng chuyến 1, 2, 3, vì booking không bao giờ bị tách. Nhóm lớn hơn một chuyến nhận `NO_AVAILABILITY`; không dùng `INVALID_PARTICIPANTS_CONFIGURATION` vì mã đó đổi cấu hình sản phẩm vĩnh viễn trên GetYourGuide.
+- Nhóm khách: `traveler_map` của ánh xạ, không có thì mã cùng tên viết thường (`ADULT` -> `adult`). Không có thì `INVALID_TICKET_CATEGORY`. `GROUP` chưa hỗ trợ.
+- Chỗ giữ: hạn bằng `hold_ttl_seconds` của kết nối, tối thiểu 900 giây; GetYourGuide mong 3600, nên đặt kết nối là 3600. Gửi lại cùng yêu cầu nhận đúng chỗ giữ cũ.
+- `bookingReference` trả về là mã booking nội bộ (`SH-...`, dưới 25 ký tự). Gửi lại `book` trả đúng booking cũ.
+- Đổi booking: GetYourGuide đặt mới với cùng mã GYG rồi hủy mã cũ. Booking mới có `external_ref` dạng `GYG...~2`.
+- Vé: mỗi khách một mã `TEXT` dạng `SH-000123-1`, vì tour không phát vé riêng.
+- Mọi lỗi trả HTTP 200 kèm `errorCode`, đúng như tài liệu chỉ mô tả mã 200. Lỗi database hoặc timeout (8 giây) trả `INTERNAL_SYSTEM_FAILURE` để GetYourGuide tự gửi lại.
+- `retailPrice` chưa được ghi vào số tiền booking: tài liệu không nói đơn vị (có thể là xu). Cần xác nhận trong sandbox.
+- Không ghi log dữ liệu khách: chỉ đường dẫn, mã lỗi, thời gian.
+
+Đã sửa kèm một lỗi lõi: khi chỗ giữ lấp kín chuyến 1 mà chuyến 2 cùng giờ còn trống, `channel_book` xếp nhầm sang chuyến 2 rồi báo hết chỗ. Giờ `_resolve_item` ưu tiên chuyến của chỗ giữ.
+
+Kiểm chứng: 14 test hàm database, 2 test trọn luồng HTTP tới Postgres, 15 test lớp HTTP, chạy thử qua PostgREST của dev stack (doanh nghiệp `gyg-smoke`, không có thành viên), `wrangler deploy --dry-run` build được.
+
+Chưa làm: rate limit (`RATE_LIMIT_EXCEEDED`), tiền theo `retailPrice`, `GROUP`, sản phẩm theo khoảng giờ (time period), add-on, `/1/notify/`, đổi giá qua API, hủy booking sát giờ bị từ chối.
+
+Để chạy thật:
+
+1. Đăng ký ở cổng Integrator (doanh nghiệp tự làm), nhận thông tin gọi `notify-availability-update` và môi trường thử.
+2. Trong database: tạo kết nối `getyourguide`, `mode = sandbox`, `supplier_account_ref` = mã nhà cung cấp GetYourGuide, `hold_ttl_seconds = 3600`; ghép và kiểm tra mã cho từng gói.
+3. Worker: `wrangler secret put SUPABASE_SERVICE_ROLE_KEY`, `GYG_INBOUND_USERNAME`, `GYG_INBOUND_PASSWORD`; đặt `SUPABASE_URL`, `GYG_CONNECTION_ID`; `pnpm --filter @tours/gyg-gateway deploy`. Khai URL Worker và tên đăng nhập, mật khẩu trên cổng Integrator.
+4. `tour-worker`: đặt `GYG_API_BASE`, `GYG_API_USERNAME`, `GYG_API_PASSWORD`, và phải chạy liên tục.
+5. Database cần gói có sao lưu và không tự tạm dừng: gói Free của Supabase không đạt yêu cầu 99,8%.
+
 ## Các bước để kết nối thật
 
 1. **Đăng ký**: Viator tại https://supplier.viator.com/sign-up-info, liên hệ SupplierAPI@viator.com. GetYourGuide liên hệ theo trang integrator. Cần doanh nghiệp đứng tên.
@@ -146,5 +186,5 @@ Cổng nhà cung cấp không có mục API hay kết nối trong menu, chỉ c�
 
 ## Chưa đọc được nguyên văn
 
-- GetYourGuide: chi tiết `cancel-reservation`, `cancel-booking`, thông báo cập nhật chỗ, redemption, products, add-ons.
+- GetYourGuide: đã đọc đặc tả OpenAPI của reserve, cancel-reservation, book, cancel-booking, products, notify-availability-update (2026-11-10). Chưa đọc: redemption, add-ons, deals, live availability and pricing.
 - Viator: event notifications, redemption, mapping, reliability chỉ có bản tóm tắt. Trang đăng ký, FAQ, hướng dẫn chuyển v2 chưa đọc.

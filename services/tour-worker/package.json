@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@tours/channels": "workspace:*",
-    "pg": "^8.13.0"
+    "pg": "^8.13.0",
+    "@tours/gyg": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

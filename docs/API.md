@@ -110,6 +110,20 @@ Từ người dùng chỉ gọi được trên kết nối `mock`, cần `connec
 }
 ```
 
+### Cổng GetYourGuide
+
+Chỉ `service_role`, chỉ kết nối `getyourguide`. Cổng `apps/gyg-gateway` gọi, xem [CHANNEL_INTEGRATION.md](CHANNEL_INTEGRATION.md).
+
+| Hàm | Mã kết quả |
+|---|---|
+| `gateway_gyg_availability(p_connection, p_product, p_from, p_to)` | `invalid_product`, `validation` |
+| `gateway_gyg_reserve(p_connection, p_product, p_local_date, p_local_time, p_items, p_gyg_ref)` | `held`, `existing`, `invalid_product`, `invalid_ticket_category`, `no_availability`, `validation` |
+| `gateway_gyg_cancel_reservation(p_connection, p_reference)` | `validation` |
+| `gateway_gyg_book(p_connection, p_reference, p_product, p_local_date, p_local_time, p_items, p_gyg_ref, p_details)` | `booked`, `existing`, `invalid_reservation`, `no_availability`, `validation` |
+| `gateway_gyg_cancel_booking(p_connection, p_booking_code, p_gyg_ref)` | `invalid_booking` |
+| `gateway_gyg_products(p_connection, p_supplier)` | `invalid_supplier` |
+| `worker_gyg_availability(p_departure)` | Chỉ worker. Số chỗ cần báo GetYourGuide khi chuyến đổi |
+
 ### Kết nối và ánh xạ
 
 | Hàm | Quyền | Mã lỗi |

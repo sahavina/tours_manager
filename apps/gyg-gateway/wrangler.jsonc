@@ -1,0 +1,12 @@
+{
+  // Cổng GetYourGuide Supplier API. CHƯA deploy: cần thông tin GetYourGuide cấp và kết nối thật trong database.
+  // Bí mật: wrangler secret put SUPABASE_SERVICE_ROLE_KEY | GYG_INBOUND_USERNAME | GYG_INBOUND_PASSWORD
+  "name": "saha-tour-hub-gyg",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "observability": { "enabled": true },
+  "vars": {
+    "SUPABASE_URL": "",
+    "GYG_CONNECTION_ID": ""
+  }
+}

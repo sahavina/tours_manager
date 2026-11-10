@@ -100,6 +100,22 @@ importers:
         specifier: ^4.0.0
         version: 4.157.0(@types/node@22.20.5)
 
+  apps/gyg-gateway:
+    dependencies:
+      '@tours/gyg':
+        specifier: workspace:*
+        version: link:../../packages/gyg
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@22.20.5)(supports-color@10.2.2)
+      wrangler:
+        specifier: ^4.0.0
+        version: 4.157.0(@types/node@22.20.5)
+
   packages/channels:
     devDependencies:
       typescript:
@@ -121,6 +137,9 @@ importers:
       '@tours/core':
         specifier: workspace:*
         version: link:../tour-core
+      '@tours/gyg':
+        specifier: workspace:*
+        version: link:../gyg
       '@types/node':
         specifier: ^22.0.0
         version: 22.20.5
@@ -130,6 +149,15 @@ importers:
       pg:
         specifier: ^8.13.0
         version: 8.23.1
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@22.20.5)(supports-color@10.2.2)
+
+  packages/gyg:
+    devDependencies:
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
@@ -155,6 +183,9 @@ importers:
       '@tours/channels':
         specifier: workspace:*
         version: link:../../packages/channels
+      '@tours/gyg':
+        specifier: workspace:*
+        version: link:../../packages/gyg
       pg:
         specifier: ^8.13.0
         version: 8.23.1
