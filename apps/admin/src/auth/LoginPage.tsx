@@ -2,6 +2,9 @@ import { Alert, Button, Card, Form, Input, Typography } from 'antd'
 import { useState } from 'react'
 import { isConfigured, supabase } from '../lib/supabase'
 
+// Bản build chỉ có giao diện, chưa có backend: nói rõ thay vì để người dùng nhập mật khẩu rồi báo lỗi kết nối.
+const previewOnly = import.meta.env.VITE_PREVIEW_ONLY === '1'
+
 export function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -23,10 +26,14 @@ export function LoginPage() {
           <Alert type="error" showIcon style={{ marginBottom: 12 }}
             message="Thiếu cấu hình" description="Chưa đặt VITE_SUPABASE_URL và VITE_SUPABASE_ANON_KEY cho app." />
         )}
+        {previewOnly && (
+          <Alert type="info" showIcon style={{ marginBottom: 12 }}
+            message="Bản xem trước" description="Máy chủ dữ liệu chưa được cài nên chưa đăng nhập được. Dữ liệu booking không nằm trên trang này." />
+        )}
         {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 12 }} />}
-        <Form layout="vertical" onFinish={submit} requiredMark={false}>
+        <Form layout="vertical" onFinish={submit} requiredMark={false} disabled={previewOnly}>
           <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email', message: 'Nhập email hợp lệ' }]}>
-            <Input autoComplete="username" autoFocus />
+            <Input autoComplete="username" autoFocus={!previewOnly} />
           </Form.Item>
           <Form.Item name="password" label="Mật khẩu" rules={[{ required: true, message: 'Nhập mật khẩu' }]}>
             <Input.Password autoComplete="current-password" />

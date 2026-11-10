@@ -32,7 +32,7 @@ enabled = false
 enabled = false
 
 [auth]
-site_url = "http://localhost:3101"
+site_url = "https://saha-tour-hub.chungnd-dsc.workers.dev"
 additional_redirect_urls = ["http://localhost:3101"]
 # Tài khoản nội bộ do quản trị viên tạo, không có đăng ký công khai.
 enable_signup = false
