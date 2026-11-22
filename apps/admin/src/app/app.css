@@ -74,3 +74,29 @@ pre.payload { background: #0f172a; color: #e2e8f0; padding: 12px; border-radius:
 .role-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin-bottom: 16px; }
 .role-card { border: 1px solid #eceff0; border-radius: 8px; padding: 10px 12px; }
 .perm-matrix-group > td { background: #f6f8f8 !important; }
+
+/* Danh sách booking */
+.bk-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.bk-kpi { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; cursor: pointer; font: inherit; text-align: left; transition: border-color .15s, box-shadow .15s; }
+.bk-kpi:hover { border-color: #0f766e; }
+.bk-kpi.active { border-color: #0f766e; box-shadow: 0 0 0 1px #0f766e inset; }
+.bk-kpi-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; font-size: 18px; flex: none; }
+.bk-kpi-value { display: block; font-size: 22px; font-weight: 600; line-height: 1.1; color: #0f172a; }
+.bk-kpi-label { display: block; font-size: 13px; color: #64748b; }
+.bk-kpi-red .bk-kpi-icon { background: #fef2f2; color: #dc2626; }
+.bk-kpi-amber .bk-kpi-icon { background: #fffbeb; color: #d97706; }
+.bk-kpi-teal .bk-kpi-icon { background: #f0fdfa; color: #0f766e; }
+.bk-kpi-blue .bk-kpi-icon { background: #eff6ff; color: #2563eb; }
+.bk-status-tabs .ant-tabs-nav { margin-bottom: 12px; }
+.bk-count { display: inline-block; min-width: 20px; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: #f1f5f9; color: #475569; font-size: 12px; line-height: 18px; text-align: center; }
+.bk-count:empty { display: none; }
+.ant-tabs-tab-active .bk-count { background: #ccfbf1; color: #0f766e; }
+.bk-more { padding: 10px 12px; background: #f8fafc; border-radius: 8px; }
+.bk-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 12px; }
+.bk-bulk { position: sticky; top: 0; z-index: 3; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; padding: 8px 12px; background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; }
+.bk-row { cursor: pointer; }
+.bk-row-action > td:first-child { box-shadow: inset 3px 0 0 #dc2626; }
+.bk-row-cancelled td { color: #94a3b8; }
+.bk-code { font-weight: 600; }
+.bk-tour { max-width: 280px; }
+.bk-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
