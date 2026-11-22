@@ -32,7 +32,7 @@ function Options({ tourId }: { tourId?: string }) {
   })
   return (
     <CrudPage bare title="Gói dịch vụ" table="tour_options" queryKey="tour_options" managePerm="catalog.manage" softDelete order="code"
-      select="id, tour_id, code, name, language, has_transfer, is_private, duration_minutes, default_capacity, cutoff_minutes, ops_policy, is_active, price_rules, capacity_rules, tours(name)"
+      select="id, tour_id, code, name, language, has_transfer, is_private, duration_minutes, default_capacity, cutoff_minutes, ops_policy, is_active, price_rules, capacity_rules, is_published, public_name, price_adult, price_child, price_currency, tours(name)"
       search={(q) => `code.ilike.%${q}%,name.ilike.%${q}%`}
       extra={<Select allowClear placeholder="Lọc theo tour" style={{ minWidth: 200 }} value={selected} onChange={setSelected} options={(tours.data ?? []).map((t) => ({ value: t.id, label: t.name }))} />}
       columns={[
@@ -54,9 +54,17 @@ function Options({ tourId }: { tourId?: string }) {
           </span>
         ) : <span className="muted">Chưa cấu hình</span> },
         { title: 'Hạn nhận khách', render: (_, r) => (r.cutoff_minutes ? `Trước ${r.cutoff_minutes} phút` : 'Đến giờ chạy') },
+        { title: 'Giá web (người lớn)', render: (_, r) => (r.price_adult != null ? `${Number(r.price_adult).toLocaleString('vi-VN')} ${r.price_currency}` : <span className="muted">Giá liên hệ</span>) },
+        { title: 'Trên web', render: (_, r) => (r.is_published ? <Tag color="green">Hiện</Tag> : <Tag>Ẩn</Tag>) },
         { title: 'Trạng thái', render: (_, r) => <ActiveTag value={r.is_active} /> },
       ]}
-      mapBeforeSave={({ tours: _t, ...v }) => v}
+      // Ô giá để trống nghĩa là "Giá liên hệ": gửi null, không gửi chuỗi rỗng vào cột số.
+      mapBeforeSave={({ tours: _t, ...v }) => ({
+        ...v,
+        public_name: v.public_name?.trim() || null,
+        price_adult: v.price_adult === '' || v.price_adult == null ? null : Number(v.price_adult),
+        price_child: v.price_child === '' || v.price_child == null ? null : Number(v.price_child),
+      })}
       fields={[
         { name: 'tour_id', label: 'Tour', type: 'select', required: true, options: (tours.data ?? []).map((t) => ({ value: t.id, label: t.name })), defaultValue: selected },
         { name: 'code', label: 'Mã gói', required: true },
@@ -69,6 +77,11 @@ function Options({ tourId }: { tourId?: string }) {
         { name: 'cutoff_minutes', label: 'Hạn chót nhận khách (phút trước giờ chạy)', type: 'number', min: 0, defaultValue: 0 },
         { name: 'ops_policy', label: 'Chính sách vận hành', type: 'textarea' },
         { name: 'is_active', label: 'Đang hoạt động', type: 'switch', defaultValue: true },
+        { name: 'is_published', label: 'Hiện trên trang đặt tour', type: 'switch', defaultValue: true, help: 'Chỉ hiện khi tour của gói cũng đang công khai' },
+        { name: 'public_name', label: 'Tên hiển thị cho khách', help: 'Bỏ trống thì dùng tên gói. Nên viết tiếng Anh, ví dụ "Small group, 4 hours"' },
+        { name: 'price_adult', label: 'Giá người lớn trên web', type: 'money', help: 'Bỏ trống thì khách thấy "Giá liên hệ"' },
+        { name: 'price_child', label: 'Giá trẻ em trên web', type: 'money', help: 'Bỏ trống thì tính bằng giá người lớn. Em bé không tính tiền' },
+        { name: 'price_currency', label: 'Tiền tệ giá web', type: 'select', defaultValue: 'USD', options: [{ value: 'USD', label: 'USD' }, { value: 'VND', label: 'VND' }, { value: 'EUR', label: 'EUR' }] },
       ]}
       emptyText="Chưa có gói dịch vụ" />
   )
@@ -112,6 +125,7 @@ export function ToursPage() {
                 { title: 'Điểm đến', dataIndex: 'destination' },
                 { title: 'Thời lượng', render: (_, r) => (r.duration_minutes ? `${Math.round(r.duration_minutes / 60 * 10) / 10} giờ` : '') },
                 { title: 'Múi giờ', dataIndex: 'default_timezone' },
+                { title: 'Trên web', render: (_, r) => (r.is_published ? <Tag color="green">Công khai</Tag> : <Tag>Ẩn</Tag>) },
                 { title: 'Trạng thái', render: (_, r) => <ActiveTag value={r.is_active} /> },
               ]}
               fields={[
@@ -125,7 +139,10 @@ export function ToursPage() {
                 { name: 'exclusions', label: 'Không bao gồm', type: 'tags', help: 'Nhập rồi bấm Enter' },
                 { name: 'joining_instructions', label: 'Hướng dẫn tham gia', type: 'textarea' },
                 { name: 'is_active', label: 'Đang hoạt động', type: 'switch', defaultValue: true },
+                { name: 'is_published', label: 'Công khai trên trang đặt tour', type: 'switch', defaultValue: false, help: 'Khách thấy tour, mô tả, gói, giá và lịch còn chỗ' },
+                { name: 'image_url', label: 'Ảnh bìa (link https)', help: 'Ảnh của doanh nghiệp, bỏ trống thì dùng nền màu' },
               ]}
+              mapBeforeSave={(v) => ({ ...v, image_url: v.image_url?.trim() || null })}
               emptyText="Chưa có tour" />
           ) },
           { key: 'options', label: 'Gói dịch vụ', children: <Options /> },

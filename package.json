@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "turbo run dev --parallel",
     "dev:admin": "pnpm --filter @tours/admin dev",
+    "dev:storefront": "pnpm --filter @tours/storefront dev",
     "dev:worker": "pnpm --filter @tours/worker dev",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
