@@ -1,6 +1,6 @@
 // Trang đặt tour cho khách: người chưa đăng nhập chỉ dùng được bốn hàm public_*.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { anon, as, closePool, makeWorld, owner, rpc, seats, type World } from './test/harness'
+import { anon, as, closePool, makeWorld, owner, rpc, seats, user, type World } from './test/harness'
 
 let w: World
 let slug: string
@@ -94,5 +94,61 @@ describe('yêu cầu đặt', () => {
     await w.departure('2027-02-04', 20)
     for (let i = 0; i < 3; i++) expect((await request('2027-02-04', { adult: 1 }, 'spam@example.com')).ok).toBe(true)
     expect((await request('2027-02-04', { adult: 1 }, 'spam@example.com')).code).toBe('too_many_requests')
+  })
+})
+
+describe('nhân viên xử lý yêu cầu website', () => {
+  const idOf = async (code: string) => (await owner<{ id: string }>(`select id from public.bookings where code = $1 and organization_id = $2`, [code, w.org]))[0]!.id
+
+  it('xác nhận: chờ xác nhận thành đã xác nhận, tắt cờ cần xử lý, vẫn giữ chỗ', async () => {
+    const dep = await w.departure('2027-03-01', 6)
+    const r = await request('2027-03-01', { adult: 2 }, 'ok1@example.com')
+    const id = await idOf(r.booking_code)
+    expect((await rpc(user(w.ownerId), 'website_request_decide', id, 'confirm', 'Đã gọi khách')).status).toBe('confirmed')
+    const [b] = await owner<any>(`select status::text, needs_action from public.bookings where id = $1`, [id])
+    expect(b).toEqual({ status: 'confirmed', needs_action: false })
+    expect((await seats(dep)).committed).toBe(2)
+    // Xử lý lần hai bị chặn.
+    expect((await rpc(user(w.ownerId), 'website_request_decide', id, 'reject', null)).code).toBe('not_pending_website')
+  })
+
+  it('từ chối: hủy, trả chỗ, không ghi "cần hủy tay trên kênh"', async () => {
+    const dep = await w.departure('2027-03-02', 6)
+    const r = await request('2027-03-02', { adult: 3 }, 'ok2@example.com')
+    const id = await idOf(r.booking_code)
+    expect((await rpc(user(w.ownerId), 'website_request_decide', id, 'reject', 'Hết xe')).status).toBe('cancelled')
+    expect((await seats(dep)).committed).toBe(0)
+    const manual = await owner(`select 1 from public.booking_changes where booking_id = $1 and channel_request_status = 'manual_required'`, [id])
+    expect(manual).toHaveLength(0)
+  })
+
+  it('hủy booking website bằng nút Hủy cũng không đòi hủy tay trên kênh', async () => {
+    await w.departure('2027-03-03', 6)
+    const r = await request('2027-03-03', { adult: 1 }, 'ok3@example.com')
+    const res = await rpc(user(w.ownerId), 'cancel_booking_internal', await idOf(r.booking_code), 'Khách đổi ý')
+    expect(res).toMatchObject({ ok: true, changed: true, channel_action_required: false })
+  })
+
+  it('người chỉ xem không xử lý được; booking không phải website bị từ chối', async () => {
+    await w.departure('2027-03-04', 6)
+    const r = await request('2027-03-04', { adult: 1 }, 'ok4@example.com')
+    await expect(rpc(user(w.viewer), 'website_request_decide', await idOf(r.booking_code), 'confirm', null)).rejects.toThrow(/forbidden/)
+    const ch = await rpc(user(w.ownerId), 'create_manual_booking', w.org, { departure_id: await w.departure('2027-03-05', 6), lead: { name: 'Nội bộ' }, pax: { adult: 1 } })
+    expect((await rpc(user(w.ownerId), 'website_request_decide', ch.booking_id, 'confirm', null)).code).toBe('not_pending_website')
+  })
+})
+
+describe('worker báo chỗ nhận cả mã booking', () => {
+  it('sự kiện hủy ghi mã booking vẫn tìm ra chuyến để báo GetYourGuide', async () => {
+    const [c] = await owner<{ id: string }>(
+      `insert into public.channel_connections (organization_id, channel, account_name, mode, status, is_api)
+       values ($1, 'getyourguide', 'GYG worker', 'sandbox', 'not_configured', true) returning id`, [w.org])
+    await owner(`insert into public.channel_product_mappings (organization_id, connection_id, external_product_code, external_option_code, tour_option_id, is_verified)
+       values ($1, $2, 'W-P1', '', $3, true)`, [w.org, c!.id, w.option])
+    await w.departure('2027-03-06', 6)
+    const r = await request('2027-03-06', { adult: 2 }, 'ok6@example.com')
+    const bookingId = (await owner<{ id: string }>(`select id from public.bookings where code = $1 and organization_id = $2`, [r.booking_code, w.org]))[0]!.id
+    const [{ t }] = await owner<{ t: any[] }>(`select public.worker_gyg_availability($1) as t`, [bookingId])
+    expect(t).toEqual([expect.objectContaining({ connection_id: c!.id, product_id: 'W-P1', items: [expect.objectContaining({ local_date: '2027-03-06', vacancies: 4 })] })])
   })
 })

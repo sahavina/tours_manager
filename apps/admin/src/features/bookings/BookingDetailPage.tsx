@@ -31,12 +31,18 @@ export function BookingDetailPage() {
     queryFn: async () => {
       const b = unwrap(await supabase.from('v_booking_list').select('*').eq('id', id).eq('organization_id', orgId).maybeSingle()) as Row | null
       if (!b) return null
-      const [full, items, notes] = await Promise.all([
+      const [full, items, notes, conn] = await Promise.all([
         supabase.from('bookings').select('special_requests, policy_snapshot, last_source_at, last_source_version, updated_at').eq('id', id).single(),
         supabase.from('booking_items').select('*, tours(name), tour_options(name, has_transfer)').eq('booking_id', id).order('item_ref'),
         supabase.from('booking_notes').select('id, body, created_at, profiles(full_name, email)').eq('booking_id', id).order('created_at', { ascending: false }),
+        b.connection_id
+          ? supabase.from('channel_connections').select('channel, account_name').eq('id', b.connection_id).maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
       ])
-      return { ...b, ...(unwrap(full) as Row), items: unwrap(items) as Row[], notes: unwrap(notes) as unknown as Row[] } as Row
+      const c = unwrap(conn) as Row | null
+      // Yêu cầu từ trang đặt tour của chính doanh nghiệp: nhân viên xác nhận hoặc từ chối.
+      const is_website = c?.channel === 'other' && c?.account_name === 'Website'
+      return { ...b, ...(unwrap(full) as Row), items: unwrap(items) as Row[], notes: unwrap(notes) as unknown as Row[], is_website } as Row
     },
   })
 
@@ -54,6 +60,15 @@ export function BookingDetailPage() {
     },
     onError: (e: Error) => message.error(e.message),
   })
+  const decide = useMutation({
+    mutationFn: ({ decision, note }: { decision: 'confirm' | 'reject'; note: string }) =>
+      rpcOk('website_request_decide', { p_booking: id, p_decision: decision, p_note: note || null }),
+    onSuccess: (r) => {
+      message.success(r.status === 'confirmed' ? 'Đã xác nhận. Hãy báo cho khách.' : 'Đã từ chối và trả chỗ. Hãy báo cho khách.')
+      invalidate()
+    },
+    onError: (e: Error) => message.error(e.message),
+  })
 
   if (q.isLoading) return <Loading />
   if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />
@@ -66,12 +81,29 @@ export function BookingDetailPage() {
       title: `Hủy booking ${b.code}?`,
       content: (
         <>
-          {b.connection_id && <Alert type="warning" showIcon style={{ marginBottom: 8 }} message="Thao tác này chỉ hủy trong hệ thống nội bộ. Kênh bán KHÔNG được cập nhật: phải hủy tay trên kênh." />}
+          {b.connection_id && !b.is_website && <Alert type="warning" showIcon style={{ marginBottom: 8 }} message="Thao tác này chỉ hủy trong hệ thống nội bộ. Kênh bán KHÔNG được cập nhật: phải hủy tay trên kênh." />}
           <Input.TextArea placeholder="Lý do" onChange={(e) => (reason = e.target.value)} />
         </>
       ),
       okText: 'Hủy booking', okButtonProps: { danger: true }, cancelText: 'Đóng',
       onOk: () => cancel.mutateAsync(reason),
+    })
+  }
+
+  const askDecision = (decision: 'confirm' | 'reject') => {
+    let note = ''
+    Modal.confirm({
+      title: decision === 'confirm' ? `Xác nhận yêu cầu ${b.code}?` : `Từ chối yêu cầu ${b.code}?`,
+      content: (
+        <>
+          <p>{decision === 'confirm' ? 'Booking chuyển sang Đã xác nhận, chỗ vẫn được giữ.' : 'Booking bị hủy và trả chỗ.'} Hệ thống chưa gửi email: hãy tự báo cho khách.</p>
+          <Input.TextArea placeholder={decision === 'confirm' ? 'Ghi chú (không bắt buộc)' : 'Lý do (không bắt buộc)'} onChange={(e) => (note = e.target.value)} />
+        </>
+      ),
+      okText: decision === 'confirm' ? 'Xác nhận' : 'Từ chối',
+      okButtonProps: decision === 'reject' ? { danger: true } : undefined,
+      cancelText: 'Đóng',
+      onOk: () => decide.mutateAsync({ decision, note }),
     })
   }
 
@@ -87,6 +119,16 @@ export function BookingDetailPage() {
         </Can>
       } />
 
+      {b.is_website && b.status === 'pending' && (
+        <Alert type="info" showIcon style={{ marginBottom: 12 }} message="Yêu cầu đặt từ trang đặt tour"
+          description={<>Khách {b.lead_name} · {b.lead_email}{b.lead_phone ? ` · ${b.lead_phone}` : ''}. Chỗ đang được giữ cho đến khi xác nhận hoặc từ chối.</>}
+          action={can('booking.manage') && (
+            <Space direction="vertical">
+              <Button type="primary" size="small" loading={decide.isPending} onClick={() => askDecision('confirm')}>Xác nhận</Button>
+              <Button danger size="small" loading={decide.isPending} onClick={() => askDecision('reject')}>Từ chối</Button>
+            </Space>
+          )} />
+      )}
       {b.connection_mode === 'mock' && <div className="mock-banner">Booking này đến từ kết nối <b>mô phỏng</b>, không phải đơn thật từ kênh.</div>}
       {b.needs_action && <Alert type="warning" showIcon style={{ marginBottom: 12 }} message="Cần xử lý" description={b.action_reason} />}
       {b.changed_after_assignment && <Alert type="warning" showIcon style={{ marginBottom: 12 }} message="Booking có thay đổi sau khi chuyến đã phân công. Hãy báo lại hướng dẫn viên và nhà xe." />}

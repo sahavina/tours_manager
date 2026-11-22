@@ -73,6 +73,7 @@ const RESULT_CODES: Record<string, string> = {
   not_on_departure: 'Khách không thuộc chuyến này.',
   hold_expired: 'Giữ chỗ đã hết hạn.',
   hold_not_found: 'Không tìm thấy mã giữ chỗ.',
+  not_pending_website: 'Booking này không còn là yêu cầu website đang chờ.',
   already_booked: 'Giữ chỗ này đã thành booking.',
   production_needs_approval: 'Chỉ chuyển Production sau khi kênh đã phê duyệt.',
   verified_needs_target: 'Phải chọn gói nội bộ trước khi xác nhận ánh xạ.',

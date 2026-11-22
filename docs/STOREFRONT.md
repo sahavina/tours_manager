@@ -13,6 +13,15 @@ Trang tự thiết kế; chỉ học cách hoạt động của các sàn tour (
 
 Tiếng Anh mặc định, có nút chuyển tiếng Việt. Không có thanh toán trực tuyến, không gửi email.
 
+## Nhân viên xử lý yêu cầu
+
+Mở booking (danh sách booking, trạng thái "Chờ xác nhận", hoặc từ thông báo "Booking cần xử lý"). Booking website đang chờ có khung "Yêu cầu đặt từ trang đặt tour" với email, điện thoại của khách và hai nút:
+
+- **Xác nhận**: chuyển sang Đã xác nhận, giữ chỗ, tắt cờ cần xử lý (`website_request_decide`, quyền `booking.manage`).
+- **Từ chối**: hủy và trả chỗ, ghi lý do.
+
+Hệ thống chưa gửi email: nhân viên tự báo cho khách. Hủy một booking website sau này cũng không đòi "hủy tay trên kênh", vì Website là kênh của chính doanh nghiệp.
+
 ## Doanh nghiệp nhập trong trang quản trị
 
 **Tour và gói dịch vụ**:
@@ -31,6 +40,6 @@ Không có nội dung nào được điền sẵn. Trên database ở máy dev, 
 
 ## Chưa làm
 
-- Deploy: chưa đưa lên Cloudflare hay Supabase Cloud. Migration `20261122100000_storefront.sql` mới áp ở database máy dev.
+- Deploy: chưa đưa lên Cloudflare hay Supabase Cloud. Migration `20261122100000_storefront.sql` và `20261122110000_website_requests.sql` mới áp ở database máy dev.
 - Thanh toán, email xác nhận, tự hủy yêu cầu không được xác nhận sau một thời gian.
 - Tên miền, SEO, ảnh.
