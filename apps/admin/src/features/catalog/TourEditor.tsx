@@ -1,12 +1,14 @@
-// Thêm / sửa tour: thông tin chung, bộ ảnh, nội dung trang khách và bản tiếng Việt.
+// Thêm / sửa tour: thông tin chung, bộ ảnh, nội dung trang khách. Công tắc English / Tiếng Việt đổi các ô chữ
+// (tên, nhãn thời lượng, nội dung) giữa bản gốc tiếng Anh và bản tiếng Việt (content_vi).
 // Danh sách (điểm nổi bật, bao gồm...) nhập mỗi dòng một mục. Lịch trình là các bước có tiêu đề và mô tả.
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { App, Alert, Button, Col, Drawer, Form, Input, InputNumber, Row as AntRow, Space, Switch, Tabs } from 'antd'
+import { App, Alert, Button, Col, Drawer, Form, Input, InputNumber, Row as AntRow, Segmented, Space, Switch, Tabs, Tag } from 'antd'
 import { useMemo, useState } from 'react'
 import { useAuth } from '../../auth/AuthProvider'
 import { friendlyError, supabase, type Row } from '../../lib/supabase'
 import { TourGallery } from './TourGallery'
+import { viProgress } from './translation'
 import './catalog.css'
 
 type Step = { title: string; description: string }
@@ -70,12 +72,27 @@ function ContentFields({ prefix }: { prefix: string[] }) {
   )
 }
 
+// Số mục đã dịch, cập nhật theo ô đang nhập.
+function ViBadge({ form }: { form: ReturnType<typeof Form.useForm>[0] }) {
+  const values = Form.useWatch([], form) as Row | undefined
+  if (!values) return null
+  const toTour = (src: Row) => ({
+    ...src,
+    highlights: fromText(src.highlights), inclusions: fromText(src.inclusions), exclusions: fromText(src.exclusions),
+    what_to_bring: fromText(src.what_to_bring), good_to_know: fromText(src.good_to_know), itinerary: cleanSteps(src.itinerary),
+  })
+  const p = viProgress({ ...toTour(values), content_vi: toTour(values.vi ?? {}) })
+  return <Tag color={p.done >= p.total ? 'green' : p.done ? 'gold' : 'default'} style={{ marginInlineEnd: 0 }}>{p.done}/{p.total}</Tag>
+}
+
 export function TourEditor({ tour, onClose }: { tour: Row; onClose: () => void }) {
   const { orgId } = useAuth()
   const { message } = App.useApp()
   const qc = useQueryClient()
   const [form] = Form.useForm()
   const isNew = !tour.id
+  const [lang, setLang] = useState<'en' | 'vi'>('en')
+  const vi = lang === 'vi'
   const [gallery, setGallery] = useState<string[]>(() => (tour.gallery?.length ? tour.gallery : tour.image_url ? [tour.image_url] : []))
   // Thư mục ảnh: theo id tour; tour mới chưa có id thì dùng một mã tạm.
   const folder = useMemo(() => tour.id ?? `new-${crypto.randomUUID().slice(0, 8)}`, [tour.id])
@@ -130,24 +147,51 @@ export function TourEditor({ tour, onClose }: { tour: Row; onClose: () => void }
     onError: (e: Error) => message.error(e.message),
   })
 
+  // Chép bản tiếng Anh vào các ô tiếng Việt còn trống, để dịch đè lên thay vì gõ lại từ đầu.
+  const copyEmpty = () => {
+    const v = form.getFieldsValue(true) as Row
+    const cur = (v.vi ?? {}) as Row
+    const empty = (x: unknown) => (Array.isArray(x) ? x.length === 0 : !String(x ?? '').trim())
+    const next = { ...cur }
+    let n = 0
+    for (const k of ['name', 'duration_label', 'description', 'joining_instructions', 'itinerary', ...LIST_KEYS]) {
+      if (empty(cur[k]) && !empty(v[k])) { next[k] = k === 'itinerary' ? toSteps(v[k]) : v[k]; n++ }
+    }
+    form.setFieldValue('vi', next)
+    message.info(n ? `Đã chép ${n} mục từ bản English, hãy dịch rồi Lưu.` : 'Không có ô trống để chép.')
+  }
+
   return (
     <Drawer open width="min(900px, 100vw)" onClose={onClose} destroyOnClose
       title={isNew ? 'Thêm tour' : `Sửa tour ${tour.code}`}
       extra={<Space><Button onClick={onClose}>Hủy</Button><Button type="primary" loading={save.isPending} onClick={() => form.submit()}>Lưu</Button></Space>}>
       <Form form={form} layout="vertical" initialValues={initial} onFinish={(v) => save.mutate(v)}
-        onFinishFailed={() => message.error('Còn ô bắt buộc chưa nhập ở tab Thông tin')}>
+        onFinishFailed={() => { setLang('en'); message.error('Còn ô bắt buộc chưa nhập ở tab Thông tin (English)') }}>
+        <Space style={{ marginBottom: 8 }} wrap>
+          <Segmented value={lang} onChange={(v) => setLang(v as 'en' | 'vi')} options={[
+            { value: 'en', label: 'English' },
+            { value: 'vi', label: <Space size={6}>Tiếng Việt<ViBadge form={form} /></Space> },
+          ]} />
+          <span className="muted">Đổi ngôn ngữ cho tên, nhãn thời lượng và tab Nội dung.</span>
+        </Space>
         <Tabs items={[
           {
             key: 'info', label: 'Thông tin', forceRender: true, children: (
               <>
                 <AntRow gutter={16}>
                   <Col span={8}><Form.Item name="code" label="Mã tour" rules={[{ required: true, message: 'Nhập mã tour' }]}><Input /></Form.Item></Col>
-                  <Col span={16}><Form.Item name="name" label="Tên tour" rules={[{ required: true, message: 'Nhập tên tour' }]}><Input /></Form.Item></Col>
+                  <Col span={16}>
+                    <Form.Item name="name" label="Tên tour (English)" rules={[{ required: true, message: 'Nhập tên tour tiếng Anh' }]} hidden={vi}><Input /></Form.Item>
+                    <Form.Item name={['vi', 'name']} label="Tên tour (Tiếng Việt)" hidden={!vi}><Input placeholder={tour.name} /></Form.Item>
+                  </Col>
                 </AntRow>
                 <AntRow gutter={16}>
                   <Col span={8}><Form.Item name="destination" label="Điểm đến"><Input placeholder="Hanoi" /></Form.Item></Col>
                   <Col span={8}><Form.Item name="duration_minutes" label="Thời lượng (phút)"><InputNumber min={1} style={{ width: '100%' }} /></Form.Item></Col>
-                  <Col span={8}><Form.Item name="duration_label" label="Nhãn thời lượng" help='Ví dụ "2 days, 1 night"'><Input /></Form.Item></Col>
+                  <Col span={8}>
+                    <Form.Item name="duration_label" label="Nhãn thời lượng (English)" help='Ví dụ "2 days, 1 night"' hidden={vi}><Input /></Form.Item>
+                    <Form.Item name={['vi', 'duration_label']} label="Nhãn thời lượng (Tiếng Việt)" help='Ví dụ "2 ngày 1 đêm"' hidden={!vi}><Input /></Form.Item>
+                  </Col>
                 </AntRow>
                 <AntRow gutter={16}>
                   <Col span={8}><Form.Item name="group_max" label="Số khách tối đa mỗi nhóm"><InputNumber min={1} max={100} style={{ width: '100%' }} /></Form.Item></Col>
@@ -165,17 +209,16 @@ export function TourEditor({ tour, onClose }: { tour: Row; onClose: () => void }
             key: 'images', label: `Ảnh (${gallery.length})`, forceRender: true,
             children: <TourGallery value={gallery} onChange={setGallery} orgId={orgId} folder={folder} />,
           },
-          { key: 'content', label: 'Nội dung', forceRender: true, children: <ContentFields prefix={[]} /> },
           {
-            key: 'vi', label: 'Tiếng Việt', forceRender: true, children: (
+            key: 'content', label: 'Nội dung', forceRender: true, children: (
               <>
-                <Alert type="info" showIcon style={{ marginBottom: 16 }}
-                  message="Khách chọn tiếng Việt thấy các ô có nội dung ở đây; ô nào để trống thì hiện bản gốc ở tab Nội dung." />
-                <AntRow gutter={16}>
-                  <Col span={16}><Form.Item name={['vi', 'name']} label="Tên tour (tiếng Việt)"><Input /></Form.Item></Col>
-                  <Col span={8}><Form.Item name={['vi', 'duration_label']} label="Nhãn thời lượng"><Input placeholder="2 ngày 1 đêm" /></Form.Item></Col>
-                </AntRow>
-                <ContentFields prefix={['vi']} />
+                {vi && (
+                  <Alert type="info" showIcon style={{ marginBottom: 16 }}
+                    message="Khách chọn tiếng Việt thấy các ô có nội dung ở đây; ô nào để trống thì hiện bản tiếng Anh."
+                    action={<Button size="small" onClick={copyEmpty}>Chép bản English vào ô trống</Button>} />
+                )}
+                <div style={{ display: vi ? 'none' : undefined }}><ContentFields prefix={[]} /></div>
+                <div style={{ display: vi ? undefined : 'none' }}><ContentFields prefix={['vi']} /></div>
               </>
             ),
           },

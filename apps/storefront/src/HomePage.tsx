@@ -9,7 +9,7 @@ export { Cover } from './ui'
 const todayIso = () => new Date().toISOString().slice(0, 10)
 
 export function HomePage() {
-  const { t } = useI18n()
+  const { t, place } = useI18n()
   const navigate = useNavigate()
   const { hash } = useLocation()
   const [data, setData] = useState<Storefront | null>(null)
@@ -70,7 +70,7 @@ export function HomePage() {
                 <span>{t.searchDestination}</span>
                 <select value={dest} onChange={(e) => setDest(e.target.value)}>
                   <option value="">{t.anyDestination}</option>
-                  {destinations.map(([d]) => <option key={d} value={d}>{d}</option>)}
+                  {destinations.map(([d]) => <option key={d} value={d}>{place(d)}</option>)}
                 </select>
               </label>
               <label>
@@ -106,8 +106,8 @@ export function HomePage() {
           <div className="dest-grid">
             {destinations.map(([d, v]) => (
               <Link key={d} to={`/tours?dest=${encodeURIComponent(d)}`} className="dest">
-                <Cover url={v.image} title={d} className="dest-img" />
-                <span className="dest-name">{d}</span>
+                <Cover url={v.image} title={place(d)} className="dest-img" />
+                <span className="dest-name">{place(d)}</span>
                 <span className="dest-count">{t.toursCount(v.count)}</span>
               </Link>
             ))}

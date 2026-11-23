@@ -7,6 +7,7 @@ import { ActiveTag, CrudPage } from '../../components/CrudPage'
 import { PageHead } from '../../components/common'
 import { rpcOk, supabase, unwrap, type Row } from '../../lib/supabase'
 import { TourEditor } from './TourEditor'
+import { viProgress } from './translation'
 
 // Bảng giá theo số người dạng chữ, mỗi dòng một bậc: "2: 199", "3-4: 180", "7+: 160".
 const tiersToText = (v: unknown) => (Array.isArray(v) ? v.map((t: Row) =>
@@ -54,6 +55,17 @@ function Options({ tourId }: { tourId?: string }) {
         { title: 'Mã gói', dataIndex: 'code' },
         { title: 'Tên gói', dataIndex: 'name' },
         { title: 'Tour', render: (_, r) => r.tours?.name },
+        {
+          title: 'Tên cho khách (EN / VI)', key: 'public',
+          filters: [{ text: 'Thiếu tên tiếng Việt', value: 'missing' }],
+          onFilter: (_, r) => !r.content_vi?.public_name,
+          render: (_, r) => (
+            <div style={{ minWidth: 200 }}>
+              <div>{r.public_name || <span className="muted">{r.name}</span>}</div>
+              {r.content_vi?.public_name ? <div className="muted">🇻🇳 {r.content_vi.public_name}</div> : <Tag color="red">Chưa có tiếng Việt</Tag>}
+            </div>
+          ),
+        },
         { title: 'Ngôn ngữ', dataIndex: 'language' },
         { title: 'Đưa đón', render: (_, r) => (r.has_transfer ? <Tag color="cyan">Có đưa đón</Tag> : 'Không') },
         { title: 'Loại', render: (_, r) => (r.is_private ? 'Tour riêng' : 'Tour ghép') },
@@ -103,15 +115,15 @@ function Options({ tourId }: { tourId?: string }) {
         { name: 'ops_policy', label: 'Chính sách vận hành', type: 'textarea' },
         { name: 'is_active', label: 'Đang hoạt động', type: 'switch', defaultValue: true },
         { name: 'is_published', label: 'Hiện trên trang đặt tour', type: 'switch', defaultValue: true, help: 'Chỉ hiện khi tour của gói cũng đang công khai' },
-        { name: 'public_name', label: 'Tên hiển thị cho khách', help: 'Bỏ trống thì dùng tên gói. Nên viết tiếng Anh, ví dụ "Small group, 4 hours"' },
+        { name: 'public_name', label: 'Tên hiển thị cho khách (English)', help: 'Bỏ trống thì dùng tên gói, ví dụ "Small group, 4 hours"' },
+        { name: 'vi_public_name', label: 'Tên hiển thị cho khách (Tiếng Việt)', help: 'Khách chọn tiếng Việt thấy tên này; bỏ trống thì hiện bản English. Ví dụ "Nhóm nhỏ, 4 giờ"' },
         { name: 'price_adult', label: 'Giá người lớn trên web', type: 'money', help: 'Bỏ trống thì khách thấy "Giá liên hệ"' },
         { name: 'price_child', label: 'Giá trẻ em trên web', type: 'money', help: 'Bỏ trống thì tính bằng giá người lớn. Em bé không tính tiền' },
         { name: 'price_currency', label: 'Tiền tệ giá web', type: 'select', defaultValue: 'USD', options: [{ value: 'USD', label: 'USD' }, { value: 'VND', label: 'VND' }, { value: 'EUR', label: 'EUR' }] },
         { name: 'group_prices_text', label: 'Giá mỗi khách theo số người (tour riêng)', type: 'textarea',
           help: 'Mỗi dòng một bậc: "2: 199", "3-4: 180", "7+: 160". Có bảng này thì mọi khách trả tiền (trừ em bé) tính theo bậc khớp số khách.' },
-        { name: 'child_note', label: 'Ghi chú giá trẻ em / tour riêng', help: 'Hiện dưới phần chọn số khách, ví dụ "Kids under 12: 30% off"' },
-        { name: 'vi_public_name', label: 'Tên hiển thị (tiếng Việt)' },
-        { name: 'vi_child_note', label: 'Ghi chú (tiếng Việt)' },
+        { name: 'child_note', label: 'Ghi chú giá trẻ em / tour riêng (English)', help: 'Hiện dưới phần chọn số khách, ví dụ "Kids under 12: 30% off"' },
+        { name: 'vi_child_note', label: 'Ghi chú giá trẻ em / tour riêng (Tiếng Việt)', help: 'Ví dụ "Trẻ dưới 12 tuổi giảm 30%"' },
       ]}
       emptyText="Chưa có gói dịch vụ" />
   )
@@ -166,6 +178,20 @@ export function ToursPage() {
                 { title: 'Tên tour', render: (_, r) => <a onClick={() => openTour(r)}>{r.name}</a> },
                 { title: 'Điểm đến', dataIndex: 'destination' },
                 { title: 'Thời lượng', render: (_, r) => r.duration_label || (r.duration_minutes ? `${Math.round(r.duration_minutes / 60 * 10) / 10} giờ` : '') },
+                {
+                  title: 'Tiếng Việt', key: 'vi',
+                  filters: [{ text: 'Đã dịch đủ', value: 'full' }, { text: 'Dịch một phần', value: 'part' }, { text: 'Chưa dịch', value: 'none' }],
+                  onFilter: (v, r) => {
+                    const p = viProgress(r)
+                    return v === 'full' ? p.done >= p.total : v === 'none' ? p.done === 0 && p.total > 0 : p.done > 0 && p.done < p.total
+                  },
+                  sorter: (a, b) => viProgress(a).done / (viProgress(a).total || 1) - viProgress(b).done / (viProgress(b).total || 1),
+                  render: (_, r) => {
+                    const p = viProgress(r)
+                    const color = p.done >= p.total ? 'green' : p.done ? 'gold' : 'red'
+                    return <Tag color={color} title="Số mục đã có bản tiếng Việt / số mục bản English có nội dung">{p.done >= p.total ? 'Đủ' : p.done ? 'Một phần' : 'Chưa dịch'} {p.done}/{p.total}</Tag>
+                  },
+                },
                 { title: 'Múi giờ', dataIndex: 'default_timezone' },
                 { title: 'Trên web', render: (_, r) => (r.is_published ? <Tag color="green">Công khai</Tag> : <Tag>Ẩn</Tag>) },
                 { title: 'Trạng thái', render: (_, r) => <ActiveTag value={r.is_active} /> },

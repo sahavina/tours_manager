@@ -14,6 +14,7 @@ type Settings = Record<string, unknown> & {
   why?: { icon: string; title: string; text: string; vi?: { title?: string; text?: string } }[]
   reviews?: { provider: string; name?: string; url: string; categories?: string[] }[]
   review_widgets?: { provider: 'tripadvisor'; type: string; location_id: string; uniq: string; lang?: string }[]
+  destinations_vi?: Record<string, string>
 }
 
 const ICONS = [
@@ -68,7 +69,7 @@ export function StorefrontTab() {
   const images = useQuery({
     queryKey: ['org-storefront-images', orgId],
     queryFn: async () => {
-      const rows = unwrap(await supabase.from('tours').select('code, name, image_url, gallery').eq('organization_id', orgId).order('code')) as
+      const rows = unwrap(await supabase.from('tours').select('code, name, image_url, gallery').eq('organization_id', orgId).is('deleted_at', null).order('code')) as
         { code: string; name: string; image_url: string | null; gallery: string[] | null }[]
       const seen = new Set<string>()
       return rows.flatMap((t) => [...(t.gallery ?? []), ...(t.image_url ? [t.image_url] : [])].filter((u) => !seen.has(u) && seen.add(u))
@@ -76,19 +77,36 @@ export function StorefrontTab() {
     },
   })
 
+  // Các điểm đến đang dùng trong tour, để nhập tên tiếng Việt.
+  const places = useQuery({
+    queryKey: ['org-storefront-places', orgId],
+    queryFn: async () => {
+      const rows = unwrap(await supabase.from('tours').select('destination').eq('organization_id', orgId).is('deleted_at', null)) as { destination: string | null }[]
+      return [...new Set(rows.map((r) => r.destination?.trim()).filter(Boolean) as string[])].sort()
+    },
+  })
+
   const save = useMutation({
     mutationFn: async (v: Settings) => {
-      const clean = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).filter(([, x]) => x !== undefined && x !== null && x !== ''))
+      const clean = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).filter(([, x]) => x !== undefined && x !== null && x !== '' && !(Array.isArray(x) && !x.length)))
+      // Bản tiếng Việt của thẻ/widget: bỏ ô trống, không còn gì thì bỏ khóa vi.
+      const withVi = <T extends Record<string, unknown>>(o: T) => {
+        const vi = clean((o.vi ?? {}) as Record<string, unknown>)
+        const { vi: _v, ...rest } = o
+        return clean(Object.keys(vi).length ? { ...rest, vi } : rest)
+      }
       const next: Settings = {
         ...(q.data ?? {}),
         contact: clean(v.contact ?? {}),
         cancel_free_hours: v.cancel_free_hours ?? undefined,
         why: (v.why ?? []).map((w) => ({ ...w, vi: clean(w.vi ?? {}) })).map((w) => (Object.keys(w.vi).length ? w : { icon: w.icon, title: w.title, text: w.text })),
-        reviews: (v.reviews ?? []).map((r) => clean({ ...r, categories: r.categories?.length ? r.categories : undefined }) as NonNullable<Settings['reviews']>[number]),
-        review_widgets: (v.review_widgets ?? []).map((w) => clean({ ...w, categories: (w as { categories?: string[] }).categories?.length ? (w as { categories?: string[] }).categories : undefined }) as NonNullable<Settings['review_widgets']>[number]),
+        reviews: (v.reviews ?? []).map((r) => withVi(r) as NonNullable<Settings['reviews']>[number]),
+        review_widgets: (v.review_widgets ?? []).map((w) => withVi(w) as NonNullable<Settings['review_widgets']>[number]),
+        destinations_vi: Object.fromEntries(Object.entries(v.destinations_vi ?? {}).map(([k, x]) => [k, String(x ?? '').trim()]).filter(([, x]) => x)),
       }
       if (next.cancel_free_hours == null) delete next.cancel_free_hours
       if (!next.review_widgets?.length) delete next.review_widgets
+      if (!Object.keys(next.destinations_vi ?? {}).length) delete next.destinations_vi
       const res = await supabase.from('organizations').update({ storefront_settings: next }).eq('id', orgId).select('id')
       if (res.error) throw new Error(friendlyError(res.error))
       if (!res.data?.length) throw new Error('Bạn không có quyền sửa dữ liệu này.')
@@ -114,6 +132,18 @@ export function StorefrontTab() {
           return u ? <img src={u} alt="" style={{ width: 160, height: 100, objectFit: 'cover', borderRadius: 8, marginTop: -8, marginBottom: 12 }} /> : null
         }}
       </Form.Item>
+    </>
+  )
+
+  // Bản tiếng Việt của chữ trên thẻ/widget; ô trống thì khách chọn tiếng Việt vẫn thấy bản English.
+  const viFields = (idx: number) => (
+    <>
+      <Col span={24}><Divider orientation="left" plain style={{ margin: '4px 0 12px' }}>Tiếng Việt (để trống thì dùng bản English)</Divider></Col>
+      <Col xs={24} md={12}><Form.Item name={[idx, 'vi', 'name']} label="Tên hiển thị"><Input /></Form.Item></Col>
+      <Col xs={24} md={12}><Form.Item name={[idx, 'vi', 'ranking']} label="Xếp hạng" extra="Ví dụ: Hạng 3 / 120 tour ở Hà Nội"><Input /></Form.Item></Col>
+      <Col xs={24} md={8}><Form.Item name={[idx, 'vi', 'location']} label="Địa điểm"><Input placeholder="Hà Nội, Việt Nam" /></Form.Item></Col>
+      <Col xs={24} md={8}><Form.Item name={[idx, 'vi', 'award']} label="Giải thưởng"><Input /></Form.Item></Col>
+      <Col xs={24} md={8}><Form.Item name={[idx, 'vi', 'categories']} label="Nhóm dịch vụ"><Select mode="tags" open={false} tokenSeparators={[',']} /></Form.Item></Col>
     </>
   )
 
@@ -161,6 +191,18 @@ export function StorefrontTab() {
       </Form.List>
 
       <Divider />
+      <Typography.Title level={5}>Điểm đến (tên tiếng Việt)</Typography.Title>
+      <Typography.Paragraph type="secondary">Tên gốc lấy từ ô "Điểm đến" của các tour. Khách chọn tiếng Việt thấy tên ở đây; để trống thì giữ tên gốc.</Typography.Paragraph>
+      <ARow gutter={12}>
+        {(places.data ?? []).map((d) => (
+          <Col key={d} xs={24} sm={12} md={8}>
+            <Form.Item name={['destinations_vi', d]} label={d}><Input placeholder={d} /></Form.Item>
+          </Col>
+        ))}
+        {!places.isLoading && !places.data?.length && <Col span={24}><Typography.Text type="secondary">Chưa có tour nào nhập điểm đến.</Typography.Text></Col>}
+      </ARow>
+
+      <Divider />
       <Typography.Title level={5}>Thẻ đánh giá ở chân trang</Typography.Title>
       <Typography.Paragraph type="secondary">Điểm và số đánh giá do bạn nhập, trang không tự cập nhật từ TripAdvisor. Hãy sao chép đúng số đang hiện trên trang của bạn.</Typography.Paragraph>
       <Form.List name="reviews">
@@ -182,6 +224,7 @@ export function StorefrontTab() {
                   <Col xs={24} md={12}>
                     {imageField('reviews', f.name, 'Chọn từ ảnh tour, hoặc dán link https:// vào ô dưới')}
                   </Col>
+                  {viFields(f.name)}
                 </ARow>
               </Card>
             ))}
@@ -217,6 +260,7 @@ export function StorefrontTab() {
                   <Col xs={24} md={12}><Form.Item name={[f.name, 'location']} label="Địa điểm"><Input /></Form.Item></Col>
                   <Col xs={24} md={12}><Form.Item name={[f.name, 'award']} label="Giải thưởng" extra="Ví dụ: Travellers' Choice 2025"><Input /></Form.Item></Col>
                   <Col xs={24} md={12}>{imageField('review_widgets', f.name, 'Ảnh đầu khung widget. Để trống thì dùng ảnh của thẻ đánh giá cùng địa điểm.')}</Col>
+                  {viFields(f.name)}
                 </ARow>
               </Card>
             ))}

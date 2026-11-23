@@ -257,7 +257,12 @@ const vi: typeof en = {
 }
 
 const DICT = { en, vi }
-const Ctx = createContext<{ lang: Lang; t: typeof en; setLang: (l: Lang) => void }>({ lang: 'en', t: en, setLang: () => {} })
+type CtxValue = {
+  lang: Lang; t: typeof en; setLang: (l: Lang) => void
+  // Tên điểm đến theo ngôn ngữ: doanh nghiệp nhập bản tiếng Việt trong admin (storefront_settings.destinations_vi).
+  place: (d: string) => string; setPlaces: (m: Record<string, string>) => void
+}
+const Ctx = createContext<CtxValue>({ lang: 'en', t: en, setLang: () => {}, place: (d) => d, setPlaces: () => {} })
 
 function initial(): Lang {
   try {
@@ -270,6 +275,8 @@ function initial(): Lang {
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, set] = useState<Lang>(initial)
+  const [places, setPlaces] = useState<Record<string, string>>({})
+  const place = (d: string) => (lang === 'vi' && places[d]?.trim() ? places[d]!.trim() : d)
   const setLang = (l: Lang) => {
     set(l)
     document.documentElement.lang = l
@@ -279,7 +286,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       /* chỉ là tiện ích, không lưu được cũng không sao */
     }
   }
-  return <Ctx.Provider value={{ lang, t: DICT[lang], setLang }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ lang, t: DICT[lang], setLang, place, setPlaces }}>{children}</Ctx.Provider>
 }
 
 export const useI18n = () => useContext(Ctx)

@@ -26,6 +26,8 @@ export type WhyItem = { icon: string; title: string; text: string; vi?: { title?
 export type ReviewBadge = {
   provider: string; name?: string; url: string; write_url?: string; rating?: number; count?: number; award?: string
   ranking?: string; categories?: string[]; location?: string; image?: string
+  // Bản tiếng Việt do doanh nghiệp nhập; ô trống thì dùng bản gốc.
+  vi?: { name?: string; ranking?: string; categories?: string[]; location?: string; award?: string }
 }
 export type Settings = {
   cancel_free_hours?: number
@@ -33,12 +35,14 @@ export type Settings = {
   // Khối "Vì sao chọn chúng tôi" trên trang chủ, do doanh nghiệp nhập. Không có thì trang tự ghi các điều có thật.
   why?: WhyItem[]
   reviews?: ReviewBadge[]
+  // Tên điểm đến tiếng Việt, khóa là tên gốc trong tour ("Ha Giang" -> "Hà Giang").
+  destinations_vi?: Record<string, string>
   // Widget chính thức TripAdvisor (mã do doanh nghiệp lấy ở tripadvisor.com/Widgets): loại, locationId, uniq.
   review_widgets?: ReviewWidget[]
 }
 // Widget có thể tự mang điểm, số đánh giá, địa điểm, link...; trường nào trống thì lấy từ thẻ đánh giá cùng locationId.
 export type ReviewWidget = { provider: 'tripadvisor'; type: string; location_id: string; uniq: string; lang?: string; image?: string }
-  & Partial<Pick<ReviewBadge, 'url' | 'write_url' | 'rating' | 'count' | 'ranking' | 'categories' | 'location' | 'award' | 'name'>>
+  & Partial<Pick<ReviewBadge, 'url' | 'write_url' | 'rating' | 'count' | 'ranking' | 'categories' | 'location' | 'award' | 'name' | 'vi'>>
 export type TourCard = {
   code: string; name: string; summary: string; destination: string | null; duration_minutes: number | null
   duration_label: string | null; group_max: number | null

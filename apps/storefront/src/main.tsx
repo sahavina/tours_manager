@@ -19,12 +19,12 @@ function ScrollTop() {
 }
 
 function Shell() {
-  const { lang, setLang, t } = useI18n()
+  const { lang, setLang, t, place, setPlaces } = useI18n()
   // Tên doanh nghiệp, liên hệ và điểm đến lấy từ database, dùng cho mọi trang.
   const [store, setStore] = useState<Storefront | null>(null)
   useEffect(() => {
     if (!configured) return
-    api.storefront().then(setStore).catch(() => setStore(null))
+    api.storefront().then((s) => { setStore(s); setPlaces(s.settings.destinations_vi ?? {}) }).catch(() => setStore(null))
   }, [])
   const contact = store?.settings.contact ?? {}
   const destinations = [...new Set((store?.tours ?? []).map((x) => x.destination).filter(Boolean) as string[])]
@@ -75,7 +75,7 @@ function Shell() {
           {destinations.length > 0 && (
             <div>
               <h4>{t.destinations}</h4>
-              {destinations.map((d) => <Link key={d} to={`/tours?dest=${encodeURIComponent(d)}`}>{d}</Link>)}
+              {destinations.map((d) => <Link key={d} to={`/tours?dest=${encodeURIComponent(d)}`}>{place(d)}</Link>)}
             </div>
           )}
           <div>

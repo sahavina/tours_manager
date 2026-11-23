@@ -71,7 +71,7 @@ function List({ items, className }: { items: string[]; className?: string }) {
 export function TourPage() {
   const { code = '' } = useParams()
   const [params] = useSearchParams()
-  const { t, lang } = useI18n()
+  const { t, lang, place } = useI18n()
   const [detail, setDetail] = useState<TourDetail | null>(null)
   const [related, setRelated] = useState<TourCard[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -277,7 +277,7 @@ export function TourPage() {
           <Link to="/tours" className="back">← {t.back}</Link>
           <h1>{name}</h1>
           <div className="facts">
-            {tour.destination && <span>📍 {tour.destination}</span>}
+            {tour.destination && <span>📍 {place(tour.destination)}</span>}
             {duration && <span>⏱ {duration}</span>}
             {tour.group_max && <span>👥 {t.maxPeople(tour.group_max)}</span>}
             {detail.options[0]?.language && <span>💬 {t.language(detail.options[0].language)}</span>}

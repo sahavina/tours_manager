@@ -55,7 +55,7 @@ export function Cover({ url, title, className = 'cover' }: { url: string | null;
 }
 
 export function TourCardView({ tour, date }: { tour: TourCard; date?: string }) {
-  const { t, lang } = useI18n()
+  const { t, lang, place } = useI18n()
   const name = displayName(localized(lang, tour.name, tour.vi?.name))
   const summary = localized(lang, tour.summary, tour.vi?.summary)
   const dur = durationText(t, localized(lang, tour.duration_label, tour.vi?.duration_label), tour.duration_minutes)
@@ -64,7 +64,7 @@ export function TourCardView({ tour, date }: { tour: TourCard; date?: string }) 
       <Cover url={tour.image_url} title={name} />
       <div className="card-body">
         <div className="chips">
-          {tour.destination && <span className="chip">{tour.destination}</span>}
+          {tour.destination && <span className="chip">{place(tour.destination)}</span>}
           {dur && <span className="chip">{dur}</span>}
           {tour.has_private && <span className="chip">{t.privateAvailable}</span>}
           {tour.has_transfer && <span className="chip">{t.pickup}</span>}
@@ -99,13 +99,24 @@ function AwardRow({ award }: { award: string }) {
   )
 }
 
+// Chữ của thẻ/widget theo ngôn ngữ khách chọn: tiếng Việt có nội dung thì dùng, không thì giữ bản gốc.
+function viReview<T extends Partial<ReviewBadge>>(lang: string, r: T): T {
+  if (lang !== 'vi' || !r.vi) return r
+  return {
+    ...r,
+    name: localized('vi', r.name, r.vi.name), ranking: localized('vi', r.ranking, r.vi.ranking), location: localized('vi', r.location, r.vi.location),
+    award: localized('vi', r.award, r.vi.award), categories: localized('vi', r.categories, r.vi.categories),
+  }
+}
+
 // Khối điểm đánh giá trên trang ngoài, đặt ở chân trang. Bong bóng tô theo điểm (làm tròn 0,5).
 export function ReviewBadges({ items }: { items: ReviewBadge[] }) {
   const { t, lang } = useI18n()
   if (!items.length) return null
   return (
     <div className="reviews">
-      {items.map((r) => {
+      {items.map((raw) => {
+        const r = viReview(lang, raw)
         const rating = Math.max(0, Math.min(5, r.rating ?? 0))
         const halves = Math.round(rating * 2)
         const label = r.provider === 'tripadvisor' ? 'Tripadvisor' : r.provider
@@ -227,8 +238,10 @@ export function ReviewWidgets({ items, badges = [] }: { items: ReviewWidget[]; b
   if (!items.length) return null
   return (
     <div className="review-widgets">
-      {items.filter((w) => w.provider === 'tripadvisor').map((w) => {
-        const card = badges.find((b) => b.url.includes(`-d${w.location_id}-`))
+      {items.filter((x) => x.provider === 'tripadvisor').map((raw) => {
+        const w = viReview(lang, raw)
+        const found = badges.find((b) => b.url.includes(`-d${w.location_id}-`))
+        const card = found && viReview(lang, found)
         // Trường của widget ưu tiên, trống thì lấy từ thẻ đánh giá cùng địa điểm (cả hai nhập trong admin).
         const pick = <K extends keyof ReviewBadge>(k: K) => (w[k as keyof ReviewWidget] ?? card?.[k]) as ReviewBadge[K] | undefined
         const url = pick('url') ?? `https://www.tripadvisor.com/${w.location_id}`

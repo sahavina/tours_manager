@@ -5,7 +5,7 @@ import { displayName, localized, useI18n } from './i18n'
 import { durationGroup, TourCardView } from './ui'
 
 export function ToursPage() {
-  const { t, lang } = useI18n()
+  const { t, lang, place } = useI18n()
   const [params, setParams] = useSearchParams()
   const [data, setData] = useState<Storefront | null>(null)
   const [error, setError] = useState<string | null>(configured ? null : 'not_configured')
@@ -44,7 +44,7 @@ export function ToursPage() {
       <div className="filters">
         <div className="pills" role="group" aria-label={t.destinations}>
           <button className={!dest ? 'on' : ''} onClick={() => set('dest', '')}>{t.filterAll}</button>
-          {destinations.map((d) => <button key={d} className={dest === d ? 'on' : ''} onClick={() => set('dest', d)}>{d}</button>)}
+          {destinations.map((d) => <button key={d} className={dest === d ? 'on' : ''} onClick={() => set('dest', d)}>{place(d)}</button>)}
         </div>
         <div className="filters-row">
           <select value={dur} onChange={(e) => set('dur', e.target.value)} aria-label={t.durationAny}>
