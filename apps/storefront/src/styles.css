@@ -298,6 +298,8 @@ h2 { font-size: 1.35rem; }
 .footer-grid .review-widgets #CDSWIDWRL .ta-count-slot .rc-location { font-family: inherit; font-size: .85rem; color: var(--ink); }
 .footer-grid .review-widgets #CDSWIDWRL .ta-count-slot a { display: inline; margin: 0; font-family: inherit !important; font-size: .88rem !important; font-weight: 400 !important; color: var(--ink) !important; text-decoration: underline !important; }
 .review-widgets #CDSWIDWRL form { display: grid; gap: 10px; margin: 0 !important; }
+/* Bỏ form của TripAdvisor (chấm điểm, ô tiêu đề, nút Continue); khách viết đánh giá qua link "Viết đánh giá" ở cuối khung. */
+#root .review-widgets #CDSWIDWRL form { display: none !important; }
 .review-widgets #CDSWIDWRL .widWRLRating { display: flex !important; align-items: center; gap: 8px; margin: 0 !important; padding: 0 !important; }
 .footer-grid .review-widgets #CDSWIDWRL .widWRLRatingText { font-size: .88rem !important; color: var(--muted) !important; font-family: inherit !important; }
 .review-widgets #CDSWIDWRL .widWRLReview { margin: 0 !important; padding: 0 !important; }
