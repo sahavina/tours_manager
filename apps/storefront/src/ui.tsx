@@ -1,4 +1,5 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import type { ReviewBadge, ReviewWidget, TourCard, WhyItem } from './api'
 import { displayName, durationText, localized, money, useI18n } from './i18n'
@@ -139,8 +140,10 @@ export function ReviewBadges({ items }: { items: ReviewBadge[] }) {
 
 // Widget TripAdvisor: dựng khung giống mã nhúng của TripAdvisor rồi nạp script jscache.com một lần.
 // React không chạy thẻ <script> trong JSX nên phải thêm script bằng DOM.
-function TripadvisorWidget({ w, photo }: { w: ReviewWidget; photo?: { image: string; url: string; name?: string } }) {
+function TripadvisorWidget({ w, photo, count }: { w: ReviewWidget; photo?: { image: string; url: string; name?: string }; count?: { text: string; url: string } }) {
   const box = useRef<HTMLDivElement>(null)
+  // Chỗ chèn số đánh giá ngay dưới tên trong widget (nội dung do script TripAdvisor vẽ, nên chèn bằng portal sau khi vẽ xong).
+  const [slot, setSlot] = useState<HTMLElement | null>(null)
   const id = `TA_${w.type}${w.uniq}`
   useEffect(() => {
     const el = box.current
@@ -164,6 +167,16 @@ function TripadvisorWidget({ w, photo }: { w: ReviewWidget; photo?: { image: str
       tries++
       if (el.innerHTML !== fallback || tries > 30) {
         window.clearInterval(timer)
+        const link = el.querySelector('.widWRLLink')
+        if (link) {
+          let s = el.querySelector<HTMLElement>('.ta-count-slot')
+          if (!s) {
+            s = document.createElement('div')
+            s.className = 'ta-count-slot'
+            link.after(s)
+          }
+          setSlot(s)
+        }
         return
       }
       if (typeof ta.taValidate === 'function' && (ta.taValIndex ?? 0) > 0) {
@@ -184,12 +197,14 @@ function TripadvisorWidget({ w, photo }: { w: ReviewWidget; photo?: { image: str
           <li><a target="_blank" rel="noreferrer" href="https://www.tripadvisor.com/">Tripadvisor</a></li>
         </ul>
       </div>
+      {slot && count && createPortal(<a className="rc-count" href={count.url} target="_blank" rel="noreferrer">{count.text}</a>, slot)}
     </div>
   )
 }
 
 // Ảnh đầu khung widget: ảnh riêng của widget, nếu không có thì lấy ảnh của thẻ đánh giá cùng địa điểm TripAdvisor (d<locationId>).
 export function ReviewWidgets({ items, badges = [] }: { items: ReviewWidget[]; badges?: ReviewBadge[] }) {
+  const { t, lang } = useI18n()
   if (!items.length) return null
   return (
     <div className="review-widgets">
@@ -197,7 +212,9 @@ export function ReviewWidgets({ items, badges = [] }: { items: ReviewWidget[]; b
         const card = badges.find((b) => b.url.includes(`-d${w.location_id}-`))
         const image = w.image ?? card?.image
         const photo = image ? { image, url: card?.url ?? `https://www.tripadvisor.com/${w.location_id}`, name: card?.name } : undefined
-        return <TripadvisorWidget key={`${w.type}${w.uniq}`} w={w} photo={photo} />
+        // Số đánh giá lấy từ thẻ đánh giá cùng địa điểm (nhập tay trong admin).
+        const count = card?.count != null ? { text: t.reviewCount(card.count.toLocaleString(lang === 'vi' ? 'vi-VN' : 'en-US')), url: card.url } : undefined
+        return <TripadvisorWidget key={`${w.type}${w.uniq}`} w={w} photo={photo} count={count} />
       })}
     </div>
   )

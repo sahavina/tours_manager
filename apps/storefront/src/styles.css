@@ -292,6 +292,8 @@ h2 { font-size: 1.35rem; }
   color: var(--ink) !important; text-decoration: none !important;
 }
 .footer-grid .review-widgets #CDSWIDWRL .widWRLLink a:hover { text-decoration: underline !important; }
+.review-widgets #CDSWIDWRL .ta-count-slot { margin-top: -4px; }
+.footer-grid .review-widgets #CDSWIDWRL .ta-count-slot a { display: inline; margin: 0; font-family: inherit !important; font-size: .88rem !important; font-weight: 400 !important; color: var(--ink) !important; text-decoration: underline !important; }
 .review-widgets #CDSWIDWRL form { display: grid; gap: 10px; margin: 0 !important; }
 .review-widgets #CDSWIDWRL .widWRLRating { display: flex !important; align-items: center; gap: 8px; margin: 0 !important; padding: 0 !important; }
 .footer-grid .review-widgets #CDSWIDWRL .widWRLRatingText { font-size: .88rem !important; color: var(--muted) !important; font-family: inherit !important; }
