@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/AuthProvider'
 import { ErrorState, PageHead } from '../../components/common'
 import { friendlyError, supabase, unwrap, type Row } from '../../lib/supabase'
 import { MembersTab, RolesTab } from './MembersTab'
+import { StorefrontTab } from './StorefrontTab'
 
 function OrgTab() {
   const { org, orgId, can } = useAuth()
@@ -45,6 +46,7 @@ export function SettingsPage() {
       <Card>
         <Tabs activeKey={tab} onChange={(k) => setParams(k === 'org' ? {} : { tab: k }, { replace: true })} items={[
           { key: 'org', label: 'Doanh nghiệp', children: <OrgTab /> },
+          { key: 'storefront', label: 'Trang đặt tour', children: <StorefrontTab /> },
           { key: 'members', label: 'Tài khoản và phân quyền', children: <MembersTab /> },
           { key: 'roles', label: 'Vai trò và quyền', children: <RolesTab /> },
         ]} />

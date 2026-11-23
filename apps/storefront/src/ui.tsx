@@ -139,7 +139,7 @@ export function ReviewBadges({ items }: { items: ReviewBadge[] }) {
 
 // Widget TripAdvisor: dựng khung giống mã nhúng của TripAdvisor rồi nạp script jscache.com một lần.
 // React không chạy thẻ <script> trong JSX nên phải thêm script bằng DOM.
-function TripadvisorWidget({ w }: { w: ReviewWidget }) {
+function TripadvisorWidget({ w, photo }: { w: ReviewWidget; photo?: { image: string; url: string; name?: string } }) {
   const box = useRef<HTMLDivElement>(null)
   const id = `TA_${w.type}${w.uniq}`
   useEffect(() => {
@@ -177,17 +177,30 @@ function TripadvisorWidget({ w }: { w: ReviewWidget }) {
     return () => window.clearInterval(timer)
   }, [w.type, w.uniq, w.location_id, w.lang])
   return (
-    <div id={id} className={`TA_${w.type} ta-widget`} ref={box}>
-      <ul className="TA_links">
-        <li><a target="_blank" rel="noreferrer" href="https://www.tripadvisor.com/">Tripadvisor</a></li>
-      </ul>
+    <div className={`ta-card${photo ? ' has-photo' : ''}`}>
+      {photo && <a href={photo.url} target="_blank" rel="noreferrer" className="rc-photo" style={{ backgroundImage: `url("${photo.image}")` }} aria-label={photo.name ?? 'Tripadvisor'} />}
+      <div id={id} className={`TA_${w.type} ta-widget`} ref={box}>
+        <ul className="TA_links">
+          <li><a target="_blank" rel="noreferrer" href="https://www.tripadvisor.com/">Tripadvisor</a></li>
+        </ul>
+      </div>
     </div>
   )
 }
 
-export function ReviewWidgets({ items }: { items: ReviewWidget[] }) {
+// Ảnh đầu khung widget: ảnh riêng của widget, nếu không có thì lấy ảnh của thẻ đánh giá cùng địa điểm TripAdvisor (d<locationId>).
+export function ReviewWidgets({ items, badges = [] }: { items: ReviewWidget[]; badges?: ReviewBadge[] }) {
   if (!items.length) return null
-  return <div className="review-widgets">{items.filter((w) => w.provider === 'tripadvisor').map((w) => <TripadvisorWidget key={`${w.type}${w.uniq}`} w={w} />)}</div>
+  return (
+    <div className="review-widgets">
+      {items.filter((w) => w.provider === 'tripadvisor').map((w) => {
+        const card = badges.find((b) => b.url.includes(`-d${w.location_id}-`))
+        const image = w.image ?? card?.image
+        const photo = image ? { image, url: card?.url ?? `https://www.tripadvisor.com/${w.location_id}`, name: card?.name } : undefined
+        return <TripadvisorWidget key={`${w.type}${w.uniq}`} w={w} photo={photo} />
+      })}
+    </div>
+  )
 }
 
 // Nhóm thời lượng để lọc: tối đa 4 giờ, cả ngày, nhiều ngày (theo nhãn "2 days" hoặc số phút).

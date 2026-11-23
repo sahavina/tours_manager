@@ -89,7 +89,7 @@ function Shell() {
             <div className="footer-reviews">
               <h4>{t.reviewsTitle}</h4>
               <ReviewBadges items={store?.settings.reviews ?? []} />
-              <ReviewWidgets items={store?.settings.review_widgets ?? []} />
+              <ReviewWidgets items={store?.settings.review_widgets ?? []} badges={store?.settings.reviews ?? []} />
             </div>
           )}
         </div>

@@ -272,6 +272,43 @@ h2 { font-size: 1.35rem; }
 .review-widgets { margin-top: 12px; }
 .footer-grid .ta-widget ul { list-style: none; padding: 0; margin: 0; }
 .footer-grid .ta-widget a, .footer-grid .ta-widget span { display: initial; margin: 0; }
+/* Khung bọc widget: viền, bo góc, bóng như thẻ đánh giá; ảnh đầu khung dùng lại .rc-photo. */
+.ta-card { border: 1px solid var(--line); border-radius: 14px; background: #fff; overflow: hidden; box-shadow: 0 10px 30px -22px rgba(31,61,43,.45); }
+.ta-card .rc-photo { display: block; }
+.review-widgets .ta-card #CDSWIDWRL .widWRLData { border: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
+/* Widget "viết đánh giá" của TripAdvisor: phủ lại kiểu để giống thẻ đánh giá bên trên.
+   Script TripAdvisor tự chèn CSS có ID nên cần !important. */
+.review-widgets .ta-widget, .review-widgets #CDSWIDWRL { width: 100% !important; max-width: none !important; margin: 0 !important; background: transparent !important; border: 0 !important; padding: 0 !important; }
+.review-widgets #CDSWIDWRL .widWRLData {
+  width: auto !important; box-sizing: border-box; padding: 14px 14px 16px !important; display: grid; gap: 10px;
+  background: #fff !important; color: var(--ink) !important; font-family: inherit !important; font-size: .9rem !important;
+  border: 1px solid var(--line) !important; border-radius: 14px !important; box-shadow: 0 10px 30px -22px rgba(31,61,43,.45);
+}
+.review-widgets #CDSWIDWRL .widWRLBranding, .review-widgets #CDSWIDWRL .widWRLBranding dl, .review-widgets #CDSWIDWRL .widWRLBranding dt { margin: 0 !important; padding: 0 !important; text-align: left !important; }
+.review-widgets #CDSWIDWRL .widWRLBranding img { height: 22px !important; width: auto !important; display: block; }
+.review-widgets #CDSWIDWRL .widWRLLink { margin: 0 !important; padding: 0 !important; }
+.footer-grid .review-widgets #CDSWIDWRL .widWRLLink a {
+  display: block !important; font-family: inherit !important; font-size: 1.15rem !important; font-weight: 700 !important; line-height: 1.25 !important;
+  color: var(--ink) !important; text-decoration: none !important;
+}
+.footer-grid .review-widgets #CDSWIDWRL .widWRLLink a:hover { text-decoration: underline !important; }
+.review-widgets #CDSWIDWRL form { display: grid; gap: 10px; margin: 0 !important; }
+.review-widgets #CDSWIDWRL .widWRLRating { display: flex !important; align-items: center; gap: 8px; margin: 0 !important; padding: 0 !important; }
+.footer-grid .review-widgets #CDSWIDWRL .widWRLRatingText { font-size: .88rem !important; color: var(--muted) !important; font-family: inherit !important; }
+.review-widgets #CDSWIDWRL .widWRLReview { margin: 0 !important; padding: 0 !important; }
+#root .review-widgets #CDSWIDWRL .widWRLReview textarea {
+  width: 100% !important; max-width: none !important; box-sizing: border-box; min-height: 72px; resize: vertical; padding: 10px 12px !important;
+  font: inherit !important; font-size: .88rem !important; color: var(--ink) !important; background: var(--paper) !important;
+  border: 1px solid var(--line) !important; border-radius: 10px !important;
+}
+.review-widgets #CDSWIDWRL textarea:focus { outline: 2px solid #00aa6c; outline-offset: 1px; }
+.review-widgets #CDSWIDWRL .widWRLButton { margin: 0 !important; padding: 0 !important; text-align: left !important; }
+.review-widgets #CDSWIDWRL .widWRLButton input {
+  display: inline-block; width: auto !important; height: auto !important; padding: 9px 18px !important; margin: 0 !important;
+  font: inherit !important; font-size: .88rem !important; font-weight: 600 !important; color: #fff !important;
+  background: var(--forest) !important; border: 0 !important; border-radius: 10px !important; cursor: pointer;
+}
+.review-widgets #CDSWIDWRL .widWRLButton input:hover { background: var(--forest-2) !important; }
 
 /* Chân trang */
 .footer-grid { display: grid; grid-template-columns: 1.2fr .8fr 1fr minmax(260px, 1.2fr); gap: 24px; align-items: start; }
