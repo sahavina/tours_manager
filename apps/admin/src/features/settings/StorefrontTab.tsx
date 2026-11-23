@@ -85,7 +85,7 @@ export function StorefrontTab() {
         cancel_free_hours: v.cancel_free_hours ?? undefined,
         why: (v.why ?? []).map((w) => ({ ...w, vi: clean(w.vi ?? {}) })).map((w) => (Object.keys(w.vi).length ? w : { icon: w.icon, title: w.title, text: w.text })),
         reviews: (v.reviews ?? []).map((r) => clean({ ...r, categories: r.categories?.length ? r.categories : undefined }) as NonNullable<Settings['reviews']>[number]),
-        review_widgets: (v.review_widgets ?? []).map((w) => clean(w) as NonNullable<Settings['review_widgets']>[number]),
+        review_widgets: (v.review_widgets ?? []).map((w) => clean({ ...w, categories: (w as { categories?: string[] }).categories?.length ? (w as { categories?: string[] }).categories : undefined }) as NonNullable<Settings['review_widgets']>[number]),
       }
       if (next.cancel_free_hours == null) delete next.cancel_free_hours
       if (!next.review_widgets?.length) delete next.review_widgets
@@ -192,7 +192,7 @@ export function StorefrontTab() {
 
       <Divider />
       <Typography.Title level={5}>Widget TripAdvisor</Typography.Title>
-      <Typography.Paragraph type="secondary">Dán mã nhúng lấy ở TripAdvisor (Management Center → Widgets). Widget hiện ở chân trang, dưới các thẻ đánh giá.</Typography.Paragraph>
+      <Typography.Paragraph type="secondary">Dán mã nhúng lấy ở TripAdvisor (Management Center → Widgets). Widget hiện ở chân trang, dưới các thẻ đánh giá. Điểm, số đánh giá, địa điểm... của widget để trống thì lấy từ thẻ đánh giá cùng locationId.</Typography.Paragraph>
       <Space.Compact style={{ width: '100%', marginBottom: 12 }}>
         <Input.TextArea value={embed} onChange={(e) => setEmbed(e.target.value)} placeholder='<div id="TA_..."> ... <script src="https://www.jscache.com/wejs?wtype=...">' autoSize={{ minRows: 2, maxRows: 6 }} />
         <Button type="default" onClick={addEmbed} disabled={!editable || !embed.trim()}>Đọc mã</Button>
@@ -208,6 +208,14 @@ export function StorefrontTab() {
                   <Col xs={12} md={6}><Form.Item name={[f.name, 'location_id']} label="locationId" rules={[{ required: true, pattern: /^\d+$/ }]}><Input /></Form.Item></Col>
                   <Col xs={12} md={5}><Form.Item name={[f.name, 'uniq']} label="uniq" rules={[{ required: true, pattern: /^\d+$/ }]}><Input /></Form.Item></Col>
                   <Col xs={24} md={5}><Form.Item name={[f.name, 'lang']} label="Ngôn ngữ"><Input placeholder="en_US" /></Form.Item></Col>
+                  <Col xs={24} md={12}><Form.Item name={[f.name, 'url']} label="Link trang đánh giá" rules={[https]}><Input /></Form.Item></Col>
+                  <Col xs={24} md={12}><Form.Item name={[f.name, 'write_url']} label="Link viết đánh giá" rules={[https]}><Input /></Form.Item></Col>
+                  <Col xs={12} md={4}><Form.Item name={[f.name, 'rating']} label="Điểm (0–5)"><InputNumber min={0} max={5} step={0.5} style={{ width: '100%' }} /></Form.Item></Col>
+                  <Col xs={12} md={4}><Form.Item name={[f.name, 'count']} label="Số đánh giá"><InputNumber min={0} style={{ width: '100%' }} /></Form.Item></Col>
+                  <Col xs={24} md={16}><Form.Item name={[f.name, 'ranking']} label="Xếp hạng" extra="Ví dụ: #3 of 120 Tours in Hanoi"><Input /></Form.Item></Col>
+                  <Col xs={24} md={12}><Form.Item name={[f.name, 'categories']} label="Nhóm dịch vụ" extra="Gõ rồi Enter để thêm"><Select mode="tags" open={false} tokenSeparators={[',']} /></Form.Item></Col>
+                  <Col xs={24} md={12}><Form.Item name={[f.name, 'location']} label="Địa điểm"><Input /></Form.Item></Col>
+                  <Col xs={24} md={12}><Form.Item name={[f.name, 'award']} label="Giải thưởng" extra="Ví dụ: Travellers' Choice 2025"><Input /></Form.Item></Col>
                   <Col xs={24} md={12}>{imageField('review_widgets', f.name, 'Ảnh đầu khung widget. Để trống thì dùng ảnh của thẻ đánh giá cùng địa điểm.')}</Col>
                 </ARow>
               </Card>

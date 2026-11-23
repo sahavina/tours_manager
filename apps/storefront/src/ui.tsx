@@ -84,6 +84,21 @@ export function TourCardView({ tour, date }: { tour: TourCard; date?: string }) 
   )
 }
 
+function AwardRow({ award }: { award: string }) {
+  const { t } = useI18n()
+  return (
+    <div className="rc-award">
+      <span className="rc-laurel" aria-hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 21c-4-1.5-7-5-7-10M12 21c4-1.5 7-5 7-10M5 11c0-1.5.5-3 1.5-4M19 11c0-1.5-.5-3-1.5-4M7.5 15.5 5 16M16.5 15.5 19 16M6.2 12.5 4 12.5M17.8 12.5 20 12.5" />
+          <circle cx="12" cy="9" r="3" />
+        </svg>
+      </span>
+      <span><small>{t.awardTitle}</small><b>{award}</b></span>
+    </div>
+  )
+}
+
 // Khối điểm đánh giá trên trang ngoài, đặt ở chân trang. Bong bóng tô theo điểm (làm tròn 0,5).
 export function ReviewBadges({ items }: { items: ReviewBadge[] }) {
   const { t, lang } = useI18n()
@@ -115,17 +130,7 @@ export function ReviewBadges({ items }: { items: ReviewBadge[] }) {
               {r.ranking && <div className="rc-ranking">{r.ranking}</div>}
               {!!r.categories?.length && <div className="rc-cats">{r.categories.join(' • ')}</div>}
               {r.location && <div className="rc-location">📍 {r.location}</div>}
-              {r.award && (
-                <div className="rc-award">
-                  <span className="rc-laurel" aria-hidden>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 21c-4-1.5-7-5-7-10M12 21c4-1.5 7-5 7-10M5 11c0-1.5.5-3 1.5-4M19 11c0-1.5-.5-3-1.5-4M7.5 15.5 5 16M16.5 15.5 19 16M6.2 12.5 4 12.5M17.8 12.5 20 12.5" />
-                      <circle cx="12" cy="9" r="3" />
-                    </svg>
-                  </span>
-                  <span><small>{t.awardTitle}</small><b>{r.award}</b></span>
-                </div>
-              )}
+              {r.award && <AwardRow award={r.award} />}
               <div className="rc-links">
                 <a href={r.url} target="_blank" rel="noreferrer">{t.readReviews(label)} →</a>
                 {r.write_url && <a href={r.write_url} target="_blank" rel="noreferrer">{t.writeReview}</a>}
@@ -140,7 +145,7 @@ export function ReviewBadges({ items }: { items: ReviewBadge[] }) {
 
 // Widget TripAdvisor: dựng khung giống mã nhúng của TripAdvisor rồi nạp script jscache.com một lần.
 // React không chạy thẻ <script> trong JSX nên phải thêm script bằng DOM.
-function TripadvisorWidget({ w, photo, count, links }: { w: ReviewWidget; photo?: { image: string; url: string; name?: string }; count?: { text: string; url: string; halves: number; location?: string }; links?: ReactNode }) {
+function TripadvisorWidget({ w, photo, count, links }: { w: ReviewWidget; photo?: { image: string; url: string; name?: string }; count?: { text: string; url: string; halves: number; location?: string; ranking?: string; categories?: string[]; award?: string }; links?: ReactNode }) {
   const box = useRef<HTMLDivElement>(null)
   // Chỗ chèn số đánh giá ngay dưới tên trong widget (nội dung do script TripAdvisor vẽ, nên chèn bằng portal sau khi vẽ xong).
   const [slot, setSlot] = useState<HTMLElement | null>(null)
@@ -207,7 +212,10 @@ function TripadvisorWidget({ w, photo, count, links }: { w: ReviewWidget; photo?
           )}
           <a className="rc-count" href={count.url} target="_blank" rel="noreferrer">{count.text}</a>
         </div>
+        {count.ranking && <div className="rc-ranking">{count.ranking}</div>}
+        {!!count.categories?.length && <div className="rc-cats">{count.categories.join(' • ')}</div>}
         {count.location && <div className="rc-location">📍 {count.location}</div>}
+        {count.award && <AwardRow award={count.award} />}
       </>, slot)}
     </div>
   )
@@ -221,17 +229,21 @@ export function ReviewWidgets({ items, badges = [] }: { items: ReviewWidget[]; b
     <div className="review-widgets">
       {items.filter((w) => w.provider === 'tripadvisor').map((w) => {
         const card = badges.find((b) => b.url.includes(`-d${w.location_id}-`))
-        const image = w.image ?? card?.image
-        const photo = image ? { image, url: card?.url ?? `https://www.tripadvisor.com/${w.location_id}`, name: card?.name } : undefined
-        // Điểm (bong bóng) và số đánh giá lấy từ thẻ đánh giá cùng địa điểm (nhập tay trong admin).
-        const count = card?.count != null
-          ? { text: t.reviewCount(card.count.toLocaleString(lang === 'vi' ? 'vi-VN' : 'en-US')), url: card.url, location: card.location, halves: Math.round(Math.max(0, Math.min(5, card.rating ?? 0)) * 2) }
+        // Trường của widget ưu tiên, trống thì lấy từ thẻ đánh giá cùng địa điểm (cả hai nhập trong admin).
+        const pick = <K extends keyof ReviewBadge>(k: K) => (w[k as keyof ReviewWidget] ?? card?.[k]) as ReviewBadge[K] | undefined
+        const url = pick('url') ?? `https://www.tripadvisor.com/${w.location_id}`
+        const writeUrl = pick('write_url')
+        const image = pick('image')
+        const photo = image ? { image, url, name: pick('name') } : undefined
+        const n = pick('count')
+        const count = n != null
+          ? { text: t.reviewCount(n.toLocaleString(lang === 'vi' ? 'vi-VN' : 'en-US')), url, location: pick('location'), ranking: pick('ranking'), categories: pick('categories'), award: pick('award'), halves: Math.round(Math.max(0, Math.min(5, pick('rating') ?? 0)) * 2) }
           : undefined
         // Hai link "Xem đánh giá" và "Viết đánh giá" giống thẻ đánh giá, đặt dưới cùng khung widget.
-        const links = card && (
+        const links = (pick('url') || writeUrl) && (
           <div className="rc-links ta-links">
-            <a href={card.url} target="_blank" rel="noreferrer">{t.readReviews('Tripadvisor')} →</a>
-            {card.write_url && <a href={card.write_url} target="_blank" rel="noreferrer">{t.writeReview}</a>}
+            {pick('url') && <a href={url} target="_blank" rel="noreferrer">{t.readReviews('Tripadvisor')} →</a>}
+            {writeUrl && <a href={writeUrl} target="_blank" rel="noreferrer">{t.writeReview}</a>}
           </div>
         )
         return <TripadvisorWidget key={`${w.type}${w.uniq}`} w={w} photo={photo} count={count} links={links} />

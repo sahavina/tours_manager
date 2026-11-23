@@ -36,7 +36,9 @@ export type Settings = {
   // Widget chính thức TripAdvisor (mã do doanh nghiệp lấy ở tripadvisor.com/Widgets): loại, locationId, uniq.
   review_widgets?: ReviewWidget[]
 }
+// Widget có thể tự mang điểm, số đánh giá, địa điểm, link...; trường nào trống thì lấy từ thẻ đánh giá cùng locationId.
 export type ReviewWidget = { provider: 'tripadvisor'; type: string; location_id: string; uniq: string; lang?: string; image?: string }
+  & Partial<Pick<ReviewBadge, 'url' | 'write_url' | 'rating' | 'count' | 'ranking' | 'categories' | 'location' | 'award' | 'name'>>
 export type TourCard = {
   code: string; name: string; summary: string; destination: string | null; duration_minutes: number | null
   duration_label: string | null; group_max: number | null
