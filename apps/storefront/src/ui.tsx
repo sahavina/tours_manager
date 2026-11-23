@@ -140,7 +140,7 @@ export function ReviewBadges({ items }: { items: ReviewBadge[] }) {
 
 // Widget TripAdvisor: dựng khung giống mã nhúng của TripAdvisor rồi nạp script jscache.com một lần.
 // React không chạy thẻ <script> trong JSX nên phải thêm script bằng DOM.
-function TripadvisorWidget({ w, photo, count }: { w: ReviewWidget; photo?: { image: string; url: string; name?: string }; count?: { text: string; url: string } }) {
+function TripadvisorWidget({ w, photo, count, links }: { w: ReviewWidget; photo?: { image: string; url: string; name?: string }; count?: { text: string; url: string; halves: number; location?: string }; links?: ReactNode }) {
   const box = useRef<HTMLDivElement>(null)
   // Chỗ chèn số đánh giá ngay dưới tên trong widget (nội dung do script TripAdvisor vẽ, nên chèn bằng portal sau khi vẽ xong).
   const [slot, setSlot] = useState<HTMLElement | null>(null)
@@ -197,7 +197,18 @@ function TripadvisorWidget({ w, photo, count }: { w: ReviewWidget; photo?: { ima
           <li><a target="_blank" rel="noreferrer" href="https://www.tripadvisor.com/">Tripadvisor</a></li>
         </ul>
       </div>
-      {slot && count && createPortal(<a className="rc-count" href={count.url} target="_blank" rel="noreferrer">{count.text}</a>, slot)}
+      {links}
+      {slot && count && createPortal(<>
+        <div className="rc-score" aria-label={count.halves ? `${count.halves / 2} / 5` : undefined}>
+          {count.halves > 0 && (
+            <span className="rb-bubbles" aria-hidden>
+              {[0, 1, 2, 3, 4].map((i) => <i key={i} className={count.halves >= (i + 1) * 2 ? 'full' : count.halves === i * 2 + 1 ? 'half' : ''} />)}
+            </span>
+          )}
+          <a className="rc-count" href={count.url} target="_blank" rel="noreferrer">{count.text}</a>
+        </div>
+        {count.location && <div className="rc-location">📍 {count.location}</div>}
+      </>, slot)}
     </div>
   )
 }
@@ -212,9 +223,18 @@ export function ReviewWidgets({ items, badges = [] }: { items: ReviewWidget[]; b
         const card = badges.find((b) => b.url.includes(`-d${w.location_id}-`))
         const image = w.image ?? card?.image
         const photo = image ? { image, url: card?.url ?? `https://www.tripadvisor.com/${w.location_id}`, name: card?.name } : undefined
-        // Số đánh giá lấy từ thẻ đánh giá cùng địa điểm (nhập tay trong admin).
-        const count = card?.count != null ? { text: t.reviewCount(card.count.toLocaleString(lang === 'vi' ? 'vi-VN' : 'en-US')), url: card.url } : undefined
-        return <TripadvisorWidget key={`${w.type}${w.uniq}`} w={w} photo={photo} count={count} />
+        // Điểm (bong bóng) và số đánh giá lấy từ thẻ đánh giá cùng địa điểm (nhập tay trong admin).
+        const count = card?.count != null
+          ? { text: t.reviewCount(card.count.toLocaleString(lang === 'vi' ? 'vi-VN' : 'en-US')), url: card.url, location: card.location, halves: Math.round(Math.max(0, Math.min(5, card.rating ?? 0)) * 2) }
+          : undefined
+        // Hai link "Xem đánh giá" và "Viết đánh giá" giống thẻ đánh giá, đặt dưới cùng khung widget.
+        const links = card && (
+          <div className="rc-links ta-links">
+            <a href={card.url} target="_blank" rel="noreferrer">{t.readReviews('Tripadvisor')} →</a>
+            {card.write_url && <a href={card.write_url} target="_blank" rel="noreferrer">{t.writeReview}</a>}
+          </div>
+        )
+        return <TripadvisorWidget key={`${w.type}${w.uniq}`} w={w} photo={photo} count={count} links={links} />
       })}
     </div>
   )

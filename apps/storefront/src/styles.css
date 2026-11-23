@@ -275,6 +275,8 @@ h2 { font-size: 1.35rem; }
 /* Khung bọc widget: viền, bo góc, bóng như thẻ đánh giá; ảnh đầu khung dùng lại .rc-photo. */
 .ta-card { border: 1px solid var(--line); border-radius: 14px; background: #fff; overflow: hidden; box-shadow: 0 10px 30px -22px rgba(31,61,43,.45); }
 .ta-card .rc-photo { display: block; }
+.ta-card .ta-links { padding: 4px 14px 14px; border-top: 1px solid #f0e9dd; margin: 0 14px; padding-left: 0; padding-right: 0; padding-top: 10px; }
+.review-widgets .ta-card #CDSWIDWRL, .review-widgets .ta-card #CDSWIDWRL .widWRLData { height: auto !important; min-height: 0 !important; max-height: none !important; overflow: visible !important; }
 .review-widgets .ta-card #CDSWIDWRL .widWRLData { border: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
 /* Widget "viết đánh giá" của TripAdvisor: phủ lại kiểu để giống thẻ đánh giá bên trên.
    Script TripAdvisor tự chèn CSS có ID nên cần !important. */
@@ -292,7 +294,8 @@ h2 { font-size: 1.35rem; }
   color: var(--ink) !important; text-decoration: none !important;
 }
 .footer-grid .review-widgets #CDSWIDWRL .widWRLLink a:hover { text-decoration: underline !important; }
-.review-widgets #CDSWIDWRL .ta-count-slot { margin-top: -4px; }
+.review-widgets #CDSWIDWRL .ta-count-slot { margin-top: -4px; display: grid; gap: 6px; }
+.footer-grid .review-widgets #CDSWIDWRL .ta-count-slot .rc-location { font-family: inherit; font-size: .85rem; color: var(--ink); }
 .footer-grid .review-widgets #CDSWIDWRL .ta-count-slot a { display: inline; margin: 0; font-family: inherit !important; font-size: .88rem !important; font-weight: 400 !important; color: var(--ink) !important; text-decoration: underline !important; }
 .review-widgets #CDSWIDWRL form { display: grid; gap: 10px; margin: 0 !important; }
 .review-widgets #CDSWIDWRL .widWRLRating { display: flex !important; align-items: center; gap: 8px; margin: 0 !important; padding: 0 !important; }
