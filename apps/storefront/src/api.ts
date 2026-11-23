@@ -33,7 +33,10 @@ export type Settings = {
   // Khối "Vì sao chọn chúng tôi" trên trang chủ, do doanh nghiệp nhập. Không có thì trang tự ghi các điều có thật.
   why?: WhyItem[]
   reviews?: ReviewBadge[]
+  // Widget chính thức TripAdvisor (mã do doanh nghiệp lấy ở tripadvisor.com/Widgets): loại, locationId, uniq.
+  review_widgets?: ReviewWidget[]
 }
+export type ReviewWidget = { provider: 'tripadvisor'; type: string; location_id: string; uniq: string; lang?: string }
 export type TourCard = {
   code: string; name: string; summary: string; destination: string | null; duration_minutes: number | null
   duration_label: string | null; group_max: number | null

@@ -6,7 +6,7 @@ import { HomePage } from './HomePage'
 import { I18nProvider, useI18n } from './i18n'
 import { ToursPage } from './ToursPage'
 import { TourPage } from './TourPage'
-import { ReviewBadges, waLink } from './ui'
+import { ReviewBadges, ReviewWidgets, waLink } from './ui'
 import './styles.css'
 
 function ScrollTop() {
@@ -85,10 +85,11 @@ function Shell() {
             {contact.email && <a href={`mailto:${contact.email}`}>{contact.email}</a>}
             {store?.settings.cancel_free_hours != null && <span className="muted small">{t.policyCancel(store.settings.cancel_free_hours)}</span>}
           </div>
-          {!!store?.settings.reviews?.length && (
+          {!!(store?.settings.reviews?.length || store?.settings.review_widgets?.length) && (
             <div className="footer-reviews">
               <h4>{t.reviewsTitle}</h4>
-              <ReviewBadges items={store.settings.reviews} />
+              <ReviewBadges items={store?.settings.reviews ?? []} />
+              <ReviewWidgets items={store?.settings.review_widgets ?? []} />
             </div>
           )}
         </div>

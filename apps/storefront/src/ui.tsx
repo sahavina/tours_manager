@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import type { ReviewBadge, TourCard, WhyItem } from './api'
+import type { ReviewBadge, ReviewWidget, TourCard, WhyItem } from './api'
 import { displayName, durationText, localized, money, useI18n } from './i18n'
 
 // Biểu tượng nét mảnh cho khối "Vì sao chọn": vẽ tay bằng SVG, không tải thư viện ngoài.
@@ -135,6 +135,59 @@ export function ReviewBadges({ items }: { items: ReviewBadge[] }) {
       })}
     </div>
   )
+}
+
+// Widget TripAdvisor: dựng khung giống mã nhúng của TripAdvisor rồi nạp script jscache.com một lần.
+// React không chạy thẻ <script> trong JSX nên phải thêm script bằng DOM.
+function TripadvisorWidget({ w }: { w: ReviewWidget }) {
+  const box = useRef<HTMLDivElement>(null)
+  const id = `TA_${w.type}${w.uniq}`
+  useEffect(() => {
+    const el = box.current
+    if (!el) return
+    if (!el.dataset.loaded) {
+      el.dataset.loaded = '1'
+      el.dataset.fallback = el.innerHTML
+      const s = document.createElement('script')
+      s.async = true
+      s.src = `https://www.jscache.com/wejs?wtype=${encodeURIComponent(w.type)}&uniq=${encodeURIComponent(w.uniq)}&locationId=${encodeURIComponent(w.location_id)}&lang=${encodeURIComponent(w.lang ?? 'en_US')}&display_version=2`
+      s.setAttribute('data-loadtrk', '')
+      s.onload = () => { (s as HTMLScriptElement & { loadtrk?: boolean }).loadtrk = true }
+      el.after(s)
+    }
+    // Script TripAdvisor chỉ vẽ widget trong window.onload; trang một-trang đã qua onload nên tự gọi taValidate
+    // khi script của họ đã đăng ký xong, đến khi khung có nội dung thật (tối đa khoảng 15 giây).
+    const fallback = el.dataset.fallback ?? el.innerHTML
+    let tries = 0
+    const timer = window.setInterval(() => {
+      const ta = window as Window & { taValidate?: () => void; taValIndex?: number }
+      tries++
+      if (el.innerHTML !== fallback || tries > 30) {
+        window.clearInterval(timer)
+        return
+      }
+      if (typeof ta.taValidate === 'function' && (ta.taValIndex ?? 0) > 0) {
+        try {
+          ta.taValidate()
+        } catch {
+          /* widget của bên ngoài, lỗi thì giữ link dự phòng */
+        }
+      }
+    }, 500)
+    return () => window.clearInterval(timer)
+  }, [w.type, w.uniq, w.location_id, w.lang])
+  return (
+    <div id={id} className={`TA_${w.type} ta-widget`} ref={box}>
+      <ul className="TA_links">
+        <li><a target="_blank" rel="noreferrer" href="https://www.tripadvisor.com/">Tripadvisor</a></li>
+      </ul>
+    </div>
+  )
+}
+
+export function ReviewWidgets({ items }: { items: ReviewWidget[] }) {
+  if (!items.length) return null
+  return <div className="review-widgets">{items.filter((w) => w.provider === 'tripadvisor').map((w) => <TripadvisorWidget key={`${w.type}${w.uniq}`} w={w} />)}</div>
 }
 
 // Nhóm thời lượng để lọc: tối đa 4 giờ, cả ngày, nhiều ngày (theo nhãn "2 days" hoặc số phút).

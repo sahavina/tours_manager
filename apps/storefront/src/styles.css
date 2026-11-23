@@ -269,6 +269,10 @@ h2 { font-size: 1.35rem; }
 .rc-links { display: flex; flex-wrap: wrap; gap: 6px 14px; padding-top: 6px; }
 .footer-grid .rc-links a { display: inline; margin: 0; font-size: .85rem; font-weight: 600; color: var(--forest-2); text-decoration: underline; }
 
+.review-widgets { margin-top: 12px; }
+.footer-grid .ta-widget ul { list-style: none; padding: 0; margin: 0; }
+.footer-grid .ta-widget a, .footer-grid .ta-widget span { display: initial; margin: 0; }
+
 /* Chân trang */
 .footer-grid { display: grid; grid-template-columns: 1.2fr .8fr 1fr minmax(260px, 1.2fr); gap: 24px; align-items: start; }
 @media (max-width: 1100px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
