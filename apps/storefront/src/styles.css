@@ -295,6 +295,9 @@ h2 { font-size: 1.35rem; }
 }
 .footer-grid .review-widgets #CDSWIDWRL .widWRLLink a:hover { text-decoration: underline !important; }
 .review-widgets #CDSWIDWRL .ta-count-slot { margin-top: -4px; display: grid; gap: 6px; }
+#root .review-widgets #CDSWIDWRL .ta-count-slot .rc-score { display: flex !important; align-items: center; gap: 8px; }
+#root .review-widgets #CDSWIDWRL .ta-count-slot .rb-bubbles { display: inline-flex !important; gap: 3px !important; }
+#root .review-widgets #CDSWIDWRL .ta-count-slot .rb-bubbles i { display: inline-block !important; margin: 0 !important; }
 .footer-grid .review-widgets #CDSWIDWRL .ta-count-slot .rc-location { font-family: inherit; font-size: .85rem; color: var(--ink); }
 .footer-grid .review-widgets #CDSWIDWRL .ta-count-slot a { display: inline; margin: 0; font-family: inherit !important; font-size: .88rem !important; font-weight: 400 !important; color: var(--ink) !important; text-decoration: underline !important; }
 .review-widgets #CDSWIDWRL form { display: grid; gap: 10px; margin: 0 !important; }
