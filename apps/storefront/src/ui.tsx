@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import type { TourCard, WhyItem } from './api'
+import type { ReviewBadge, TourCard, WhyItem } from './api'
 import { displayName, durationText, localized, money, useI18n } from './i18n'
 
 // Biểu tượng nét mảnh cho khối "Vì sao chọn": vẽ tay bằng SVG, không tải thư viện ngoài.
@@ -80,6 +80,60 @@ export function TourCardView({ tour, date }: { tour: TourCard; date?: string }) 
         </div>
       </div>
     </Link>
+  )
+}
+
+// Khối điểm đánh giá trên trang ngoài, đặt ở chân trang. Bong bóng tô theo điểm (làm tròn 0,5).
+export function ReviewBadges({ items }: { items: ReviewBadge[] }) {
+  const { t, lang } = useI18n()
+  if (!items.length) return null
+  return (
+    <div className="reviews">
+      {items.map((r) => {
+        const rating = Math.max(0, Math.min(5, r.rating ?? 0))
+        const halves = Math.round(rating * 2)
+        const label = r.provider === 'tripadvisor' ? 'Tripadvisor' : r.provider
+        return (
+          <div key={r.url} className="review-card">
+            {r.image && (
+              <a href={r.url} target="_blank" rel="noreferrer" className="rc-photo" style={{ backgroundImage: `url("${r.image}")` }} aria-label={r.name ?? label} />
+            )}
+            <div className="rc-body">
+              <div className="rc-provider">{label}</div>
+              {r.name && <a className="rc-name" href={r.url} target="_blank" rel="noreferrer">{r.name}</a>}
+              {rating > 0 && (
+                <div className="rc-score" aria-label={`${rating} / 5`}>
+                  <span className="rb-bubbles" aria-hidden>
+                    {[0, 1, 2, 3, 4].map((i) => <i key={i} className={halves >= (i + 1) * 2 ? 'full' : halves === i * 2 + 1 ? 'half' : ''} />)}
+                  </span>
+                  {r.count != null && (
+                    <a className="rc-count" href={r.url} target="_blank" rel="noreferrer">{t.reviewCount(r.count.toLocaleString(lang === 'vi' ? 'vi-VN' : 'en-US'))}</a>
+                  )}
+                </div>
+              )}
+              {r.ranking && <div className="rc-ranking">{r.ranking}</div>}
+              {!!r.categories?.length && <div className="rc-cats">{r.categories.join(' • ')}</div>}
+              {r.location && <div className="rc-location">📍 {r.location}</div>}
+              {r.award && (
+                <div className="rc-award">
+                  <span className="rc-laurel" aria-hidden>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 21c-4-1.5-7-5-7-10M12 21c4-1.5 7-5 7-10M5 11c0-1.5.5-3 1.5-4M19 11c0-1.5-.5-3-1.5-4M7.5 15.5 5 16M16.5 15.5 19 16M6.2 12.5 4 12.5M17.8 12.5 20 12.5" />
+                      <circle cx="12" cy="9" r="3" />
+                    </svg>
+                  </span>
+                  <span><small>{t.awardTitle}</small><b>{r.award}</b></span>
+                </div>
+              )}
+              <div className="rc-links">
+                <a href={r.url} target="_blank" rel="noreferrer">{t.readReviews(label)} →</a>
+                {r.write_url && <a href={r.write_url} target="_blank" rel="noreferrer">{t.writeReview}</a>}
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
   )
 }
 

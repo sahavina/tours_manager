@@ -22,11 +22,17 @@ async function call<T>(fn: string, args: Record<string, unknown>): Promise<T> {
 }
 
 export type WhyItem = { icon: string; title: string; text: string; vi?: { title?: string; text?: string } }
+// Điểm đánh giá trên trang ngoài (TripAdvisor...), doanh nghiệp tự cập nhật; trang chỉ hiện số và link, không chép đánh giá.
+export type ReviewBadge = {
+  provider: string; name?: string; url: string; write_url?: string; rating?: number; count?: number; award?: string
+  ranking?: string; categories?: string[]; location?: string; image?: string
+}
 export type Settings = {
   cancel_free_hours?: number
   contact?: { whatsapp?: string; zalo?: string; email?: string; phone?: string }
   // Khối "Vì sao chọn chúng tôi" trên trang chủ, do doanh nghiệp nhập. Không có thì trang tự ghi các điều có thật.
   why?: WhyItem[]
+  reviews?: ReviewBadge[]
 }
 export type TourCard = {
   code: string; name: string; summary: string; destination: string | null; duration_minutes: number | null

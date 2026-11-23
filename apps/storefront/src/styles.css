@@ -241,8 +241,37 @@ h2 { font-size: 1.35rem; }
 .wa { display: block; text-align: center; margin-top: 10px; color: var(--forest-2); font-weight: 600; font-size: .9rem; }
 .mobile-bar { display: none; }
 
+/* Điểm đánh giá trên trang ngoài (chân trang) */
+.reviews { display: grid; gap: 12px; }
+.review-card { border: 1px solid var(--line); border-radius: 14px; background: #fff; overflow: hidden; color: var(--ink); box-shadow: 0 10px 30px -22px rgba(31,61,43,.45); }
+.rc-photo { display: block; aspect-ratio: 16 / 9; background: #e8e0d2 center / cover; }
+.rc-body { padding: 12px 14px 14px; display: grid; gap: 6px; }
+.rc-provider { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #00aa6c; }
+.footer-grid .rc-name, .rc-name { display: block; margin: 0; font-family: inherit; font-size: 1.15rem; font-weight: 700; color: var(--ink); text-decoration: none; line-height: 1.25; }
+.rc-name:hover { text-decoration: underline; }
+.rc-score { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rb-bubbles { display: inline-flex; gap: 3px; }
+.footer-grid .rb-bubbles { display: inline-flex; margin: 0; }
+.rb-bubbles i { width: 15px; height: 15px; border-radius: 50%; border: 2px solid #00aa6c; display: inline-block; }
+.rb-bubbles i.full { background: #00aa6c; }
+.rb-bubbles i.half { background: linear-gradient(90deg, #00aa6c 50%, transparent 50%); }
+.footer-grid .rc-count, .rc-count { display: inline; margin: 0; font-size: .88rem; color: var(--ink); text-decoration: underline; }
+.rc-ranking { font-size: .85rem; text-decoration: underline; text-decoration-color: var(--line); }
+.rc-cats { font-size: .82rem; color: var(--muted); line-height: 1.5; }
+.rc-location { font-size: .85rem; }
+.rc-award { display: flex; align-items: center; gap: 10px; padding-top: 8px; border-top: 1px solid #f0e9dd; margin-top: 2px; }
+.footer-grid .rc-award span { margin: 0; }
+.rc-laurel { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: #34e0a1; color: #0b3d2a; }
+.footer-grid .rc-laurel { display: grid; }
+.rc-laurel svg { width: 24px; height: 24px; }
+.rc-award small { display: block; font-size: .72rem; color: var(--muted); }
+.rc-award b { display: block; font-size: .92rem; }
+.rc-links { display: flex; flex-wrap: wrap; gap: 6px 14px; padding-top: 6px; }
+.footer-grid .rc-links a { display: inline; margin: 0; font-size: .85rem; font-weight: 600; color: var(--forest-2); text-decoration: underline; }
+
 /* Chân trang */
-.footer-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 24px; }
+.footer-grid { display: grid; grid-template-columns: 1.2fr .8fr 1fr minmax(260px, 1.2fr); gap: 24px; align-items: start; }
+@media (max-width: 1100px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
 .footer-grid h4 { margin: 0 0 8px; font-size: .9rem; color: var(--ink); }
 .footer-grid a, .footer-grid span { display: block; text-decoration: none; margin-bottom: 4px; }
 .footer-brand { font-family: 'Fraunces', Georgia, serif; font-size: 1.15rem; font-weight: 700; color: var(--ink); }
