@@ -38,6 +38,15 @@ Không có nội dung nào được điền sẵn. Trên database ở máy dev, 
 - Giới hạn: 1 đến 20 khách, đặt trước tối đa 365 ngày, mỗi email tối đa 3 yêu cầu đang chờ trong 24 giờ, mỗi doanh nghiệp tối đa 60 yêu cầu website mỗi giờ.
 - Chưa có CAPTCHA (ví dụ Cloudflare Turnstile): cần thêm trước khi mở công khai, vì yêu cầu đặt giữ chỗ thật.
 
+## Trang chủ, danh sách, chi tiết (migration `20261123110000_storefront_content.sql`)
+
+- Trang chủ: thanh liên hệ, ô tìm tour (điểm đến, ngày, số khách), điểm đến kèm số tour, tour nổi bật, "Vì sao đặt trực tiếp" (chỉ điều có thật: hủy miễn phí theo `storefront_settings.cancel_free_hours`, chưa thu tiền, số khách tối đa, WhatsApp), hỏi đáp về quy trình đặt.
+- `/tours`: lọc theo điểm đến, thời lượng (nửa ngày, cả ngày, nhiều ngày), từ khóa.
+- Trang tour: bộ ảnh và xem ảnh to, nhãn thông tin, điểm nổi bật, lịch trình, bao gồm, điểm hẹn, nên mang theo, lưu ý, chính sách; khung đặt có tour ghép / tour riêng, lịch tháng, đặt hai bước, thanh đặt cố định trên điện thoại, tour tương tự.
+- Dữ liệu mới: `tours.gallery, highlights, what_to_bring, good_to_know, duration_label, group_max, content_vi` (bản tiếng Việt, thiếu khóa nào thì dùng bản gốc); `tour_options.group_prices` (giá mỗi khách theo số khách, cho tour riêng), `child_note`, `content_vi`; `organizations.storefront_settings` (liên hệ, giờ hủy miễn phí).
+- Tiền tính ở một chỗ: `_storefront_price` (bảng giá theo người nếu có, không thì người lớn / trẻ em / em bé miễn phí). Trang khách gọi `public_quote` để hiện tổng tiền đúng như lúc đặt.
+- Production (2026-11-23): 22 tour từ hanoibackstreettours.com (website của doanh nghiệp) có nội dung, bản dịch, 204 ảnh WebP trên máy chủ (`/media/<CODE>/<n>.webp`), 7 gói tour riêng `<CODE>-PRV` theo bảng giá trên website, lịch chuyến đến 22/01/2027. Trang quản trị chưa có ô sửa các trường mới.
+
 ## Chưa làm
 
 - Deploy: chưa đưa lên Cloudflare hay Supabase Cloud. Migration `20261122100000_storefront.sql` và `20261122110000_website_requests.sql` mới áp ở database máy dev.

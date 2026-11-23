@@ -1,0 +1,7 @@
+{
+  // Trang đặt tour cho khách: SPA thuần, Worker chỉ phục vụ file tĩnh (giống apps/admin).
+  // Build với VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY của môi trường cần deploy trước khi chạy wrangler deploy.
+  "name": "saha-tour-store",
+  "compatibility_date": "2026-10-01",
+  "assets": { "directory": "./dist", "not_found_handling": "single-page-application" }
+}
