@@ -47,6 +47,13 @@ Không có nội dung nào được điền sẵn. Trên database ở máy dev, 
 - Tiền tính ở một chỗ: `_storefront_price` (bảng giá theo người nếu có, không thì người lớn / trẻ em / em bé miễn phí). Trang khách gọi `public_quote` để hiện tổng tiền đúng như lúc đặt.
 - Production (2026-11-23): 22 tour từ hanoibackstreettours.com (website của doanh nghiệp) có nội dung, bản dịch, 204 ảnh WebP trên máy chủ (`/media/<CODE>/<n>.webp`), 7 gói tour riêng `<CODE>-PRV` theo bảng giá trên website, lịch chuyến đến 22/01/2027. Trang quản trị chưa có ô sửa các trường mới.
 
+## Sửa nội dung trong trang quản trị
+
+- Tour: bấm tên tour hoặc "Sửa" mở form 4 tab: Thông tin, Ảnh, Nội dung, Tiếng Việt. Danh sách (điểm nổi bật, bao gồm, lưu ý...) nhập mỗi dòng một mục; lịch trình là các bước có tiêu đề và mô tả.
+- Ảnh: tải nhiều ảnh lên (thu nhỏ còn rộng 1600px, WebP, ngay trên trình duyệt), kéo thả sắp xếp, ảnh đầu là ảnh bìa, thêm bằng link https, tối đa 20 ảnh. Ảnh lưu ở bucket công khai `tour-images`, thư mục `<organization_id>/<tour_id>/`; chỉ người có `catalog.manage` của doanh nghiệp đó tải lên, đổi, xóa được (migration `20261123120000_tour_images.sql`, chỉ chạy nơi có dịch vụ lưu file). Bỏ ảnh khỏi tour không xóa file trong kho.
+- Gói: thêm "Giá mỗi khách theo số người" (mỗi dòng một bậc: `2: 199`, `3-4: 180`, `7+: 160`), ghi chú giá trẻ em, bản tiếng Việt của tên và ghi chú.
+- Máy chủ tự cài: dịch vụ lưu file `tourhub-storage` (storage-api, cổng 8103, `/storage/v1` qua Caddy), file ở `/srv/tourhub/storage`.
+
 ## Chưa làm
 
 - Deploy: chưa đưa lên Cloudflare hay Supabase Cloud. Migration `20261122100000_storefront.sql` và `20261122110000_website_requests.sql` mới áp ở database máy dev.

@@ -34,6 +34,10 @@ type Props = {
   bare?: boolean
   emptyText?: string
   mapBeforeSave?: (values: Row) => Row
+  /** Đổi dòng dữ liệu trước khi đưa vào form sửa (ví dụ mảng JSON thành chữ). */
+  mapBeforeEdit?: (row: Row) => Row
+  /** Mở form riêng thay cho form chung (null = thêm mới). */
+  onEdit?: (row: Row | null) => void
 }
 
 /** Bảng danh mục đơn giản qua PostgREST + RLS. Không dùng cho bảng có bất biến xuyên bảng (booking, chuyến). */
@@ -93,7 +97,7 @@ export function CrudPage(p: Props) {
     onError: (e: Error) => message.error(e.message),
   })
 
-  const open = (row: Row | null) => setEditing(row ?? {})
+  const open = (row: Row | null) => (p.onEdit ? p.onEdit(row) : setEditing(row ? (p.mapBeforeEdit ? p.mapBeforeEdit(row) : row) : {}))
   // initialValues, không dùng form.setFieldsValue: Drawer destroyOnClose nên Form chưa mount lúc bấm mở, giá
   // trị đặt trước bị mất; hậu quả là form sửa mở ra trống và trường bắt buộc có mặc định chặn nút Lưu.
   const defaults = Object.fromEntries(p.fields.filter((f) => f.defaultValue !== undefined).map((f) => [f.name, f.defaultValue]))
