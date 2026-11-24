@@ -22,7 +22,7 @@ export function EmailTab() {
   const [form] = Form.useForm()
   const [testTo, setTestTo] = useState('')
   const [watchLog, setWatchLog] = useState(false)
-  const editable = can('org.manage')
+  const editable = can('org.manage') || can('web.manage')
 
   const q = useQuery({
     queryKey: ['org-email', orgId],

@@ -38,6 +38,8 @@ type Props = {
   mapBeforeEdit?: (row: Row) => Row
   /** Mở form riêng thay cho form chung (null = thêm mới). */
   onEdit?: (row: Row | null) => void
+  /** Không cho thêm mới ở trang này (ví dụ khu Website chỉ sửa phần web của gói có sẵn). */
+  noCreate?: boolean
 }
 
 /** Bảng danh mục đơn giản qua PostgREST + RLS. Không dùng cho bảng có bất biến xuyên bảng (booking, chuyến). */
@@ -127,7 +129,7 @@ export function CrudPage(p: Props) {
         {p.search && <Input.Search allowClear placeholder="Tìm kiếm" style={{ maxWidth: 280 }} defaultValue={q} onSearch={setQ} />}
         <div style={{ flex: 1 }} />
         {p.extra}
-        {canManage && <Button type="primary" icon={<PlusOutlined />} onClick={() => open(null)}>Thêm mới</Button>}
+        {canManage && !p.noCreate && <Button type="primary" icon={<PlusOutlined />} onClick={() => open(null)}>Thêm mới</Button>}
       </div>
       {list.isError ? (
         <ErrorState error={list.error} onRetry={() => list.refetch()} />

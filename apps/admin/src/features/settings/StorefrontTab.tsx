@@ -57,7 +57,7 @@ export function StorefrontTab() {
   const qc = useQueryClient()
   const [form] = Form.useForm()
   const [embed, setEmbed] = useState('')
-  const editable = can('org.manage')
+  const editable = can('org.manage') || can('web.manage')
 
   const q = useQuery({
     queryKey: ['org-storefront', orgId],

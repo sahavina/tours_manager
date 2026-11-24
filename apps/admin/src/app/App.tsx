@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from '../auth/AuthProvider'
 import { LoginPage } from '../auth/LoginPage'
 import { Loading, Need } from '../components/common'
 import { AdminLayout } from './AdminLayout'
+import { lastArea } from './area'
 
 dayjs.locale('vi')
 
@@ -35,12 +36,22 @@ const ImportPage = lazyNamed(() => import('../features/imports/ImportPage'), 'Im
 const ReportsPage = lazyNamed(() => import('../features/reports/ReportsPage'), 'ReportsPage')
 const AuditPage = lazyNamed(() => import('../features/audit/AuditPage'), 'AuditPage')
 const SettingsPage = lazyNamed(() => import('../features/settings/SettingsPage'), 'SettingsPage')
+const WebDashboardPage = lazyNamed(() => import('../features/web/WebPages'), 'WebDashboardPage')
+const WebRequestsPage = lazyNamed(() => import('../features/web/WebPages'), 'WebRequestsPage')
+const WebToursPage = lazyNamed(() => import('../features/web/WebPages'), 'WebToursPage')
+const WebOptionsPage = lazyNamed(() => import('../features/web/WebPages'), 'WebOptionsPage')
+const WebContentPage = lazyNamed(() => import('../features/web/WebPages'), 'WebContentPage')
+const WebEmailPage = lazyNamed(() => import('../features/web/WebPages'), 'WebEmailPage')
 const GuideListPage = lazyNamed(() => import('../features/guide-portal/GuidePortal'), 'GuideListPage')
 const GuideDeparturePage = lazyNamed(() => import('../features/guide-portal/GuidePortal'), 'GuideDeparturePage')
 
+// Mở lại khu dùng gần nhất (Điều hành / Website); người chỉ có quyền Website luôn vào khu Website.
 function Home() {
   const { can } = useAuth()
-  return <Navigate to={can('booking.read') ? '/dashboard' : can('guide.portal') ? '/guide' : '/forbidden'} replace />
+  const ops = can('booking.read') ? '/dashboard' : can('catalog.read') && can('catalog.manage') ? '/tours' : null
+  const web = can('web.manage') ? '/web' : null
+  const to = (lastArea() === 'web' && web) || ops || web || (can('guide.portal') ? '/guide' : '/forbidden')
+  return <Navigate to={to} replace />
 }
 
 function Gate() {
@@ -84,7 +95,13 @@ function Gate() {
           <Route path="/imports" element={page('import.manage', <ImportPage />)} />
           <Route path="/reports" element={page('report.read', <ReportsPage />)} />
           <Route path="/audit" element={page('audit.read', <AuditPage />)} />
-          <Route path="/settings" element={page(['member.manage', 'org.manage', 'catalog.manage'], <SettingsPage />)} />
+          <Route path="/settings" element={page(['member.manage', 'org.manage'], <SettingsPage />)} />
+          <Route path="/web" element={page('web.manage', <WebDashboardPage />)} />
+          <Route path="/web/requests" element={page('booking.read', <WebRequestsPage />)} />
+          <Route path="/web/tours" element={page('web.manage', <WebToursPage />)} />
+          <Route path="/web/options" element={page('web.manage', <WebOptionsPage />)} />
+          <Route path="/web/content" element={page('web.manage', <WebContentPage />)} />
+          <Route path="/web/email" element={page('web.manage', <WebEmailPage />)} />
           <Route path="*" element={<Result status="404" title="Không tìm thấy trang" />} />
         </Route>
       </Routes>

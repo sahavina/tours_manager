@@ -1,9 +1,12 @@
-// Thêm / sửa tour: thông tin chung, bộ ảnh, nội dung trang khách. Công tắc English / Tiếng Việt đổi các ô chữ
-// (tên, nhãn thời lượng, nội dung) giữa bản gốc tiếng Anh và bản tiếng Việt (content_vi).
+// Sửa tour, hai chế độ theo khu của trang quản trị:
+// - 'ops' (khu Điều hành): thông tin vận hành (mã, tên, điểm đến, thời lượng, số khách, múi giờ, hoạt động).
+// - 'web' (khu Website): những gì khách thấy: tên và nhãn thời lượng EN/VI, công khai, bộ ảnh, nội dung EN/VI.
+// Mỗi chế độ chỉ gửi các cột của mình; database chặn người chỉ có quyền Website sửa cột vận hành.
 // Danh sách (điểm nổi bật, bao gồm...) nhập mỗi dòng một mục. Lịch trình là các bước có tiêu đề và mô tả.
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { App, Alert, Button, Col, Drawer, Form, Input, InputNumber, Row as AntRow, Segmented, Space, Switch, Tabs, Tag } from 'antd'
+import { Link } from 'react-router-dom'
 import { useMemo, useState } from 'react'
 import { useAuth } from '../../auth/AuthProvider'
 import { friendlyError, supabase, type Row } from '../../lib/supabase'
@@ -85,12 +88,13 @@ function ViBadge({ form }: { form: ReturnType<typeof Form.useForm>[0] }) {
   return <Tag color={p.done >= p.total ? 'green' : p.done ? 'gold' : 'default'} style={{ marginInlineEnd: 0 }}>{p.done}/{p.total}</Tag>
 }
 
-export function TourEditor({ tour, onClose }: { tour: Row; onClose: () => void }) {
+export function TourEditor({ tour, onClose, mode = 'ops' }: { tour: Row; onClose: () => void; mode?: 'ops' | 'web' }) {
   const { orgId } = useAuth()
   const { message } = App.useApp()
   const qc = useQueryClient()
   const [form] = Form.useForm()
   const isNew = !tour.id
+  const web = mode === 'web'
   const [lang, setLang] = useState<'en' | 'vi'>('en')
   const vi = lang === 'vi'
   const [gallery, setGallery] = useState<string[]>(() => (tour.gallery?.length ? tour.gallery : tour.image_url ? [tour.image_url] : []))
@@ -116,22 +120,28 @@ export function TourEditor({ tour, onClose }: { tour: Row; onClose: () => void }
 
   const save = useMutation({
     mutationFn: async (v: Row) => {
-      const content = (src: Row) => ({
-        description: blank(src.description),
-        joining_instructions: blank(src.joining_instructions),
-        itinerary: cleanSteps(src.itinerary),
-        ...Object.fromEntries(LIST_KEYS.map((k) => [k, fromText(src[k])])),
-      })
-      const main = content(v)
-      if (fromText(v.highlights).length > 12 || fromText(v.vi?.highlights).length > 12) throw new Error('Điểm nổi bật tối đa 12 dòng')
-      const viRaw = { name: blank(v.vi?.name), duration_label: blank(v.vi?.duration_label), ...content(v.vi ?? {}) }
-      // Chỉ lưu khóa tiếng Việt có nội dung; thiếu khóa nào thì trang khách dùng bản gốc.
-      const content_vi = Object.fromEntries(Object.entries(viRaw).filter(([, x]) => (Array.isArray(x) ? x.length > 0 : x != null)))
-      const payload = {
-        code: String(v.code).trim(), name: String(v.name).trim(), destination: blank(v.destination),
-        duration_minutes: v.duration_minutes ?? null, duration_label: blank(v.duration_label), group_max: v.group_max ?? null,
-        default_timezone: v.default_timezone, is_active: v.is_active, is_published: v.is_published,
-        ...main, gallery, image_url: gallery[0] ?? null, content_vi,
+      let payload: Row
+      if (web) {
+        const content = (src: Row) => ({
+          description: blank(src.description),
+          joining_instructions: blank(src.joining_instructions),
+          itinerary: cleanSteps(src.itinerary),
+          ...Object.fromEntries(LIST_KEYS.map((k) => [k, fromText(src[k])])),
+        })
+        if (fromText(v.highlights).length > 12 || fromText(v.vi?.highlights).length > 12) throw new Error('Điểm nổi bật tối đa 12 dòng')
+        const viRaw = { name: blank(v.vi?.name), duration_label: blank(v.vi?.duration_label), ...content(v.vi ?? {}) }
+        // Chỉ lưu khóa tiếng Việt có nội dung; thiếu khóa nào thì trang khách dùng bản gốc.
+        const content_vi = Object.fromEntries(Object.entries(viRaw).filter(([, x]) => (Array.isArray(x) ? x.length > 0 : x != null)))
+        payload = {
+          name: String(v.name).trim(), duration_label: blank(v.duration_label), is_published: v.is_published,
+          ...content(v), gallery, image_url: gallery[0] ?? null, content_vi,
+        }
+      } else {
+        payload = {
+          code: String(v.code).trim(), name: String(v.name).trim(), destination: blank(v.destination),
+          duration_minutes: v.duration_minutes ?? null, group_max: v.group_max ?? null,
+          default_timezone: v.default_timezone, is_active: v.is_active,
+        }
       }
       const res = isNew
         ? await supabase.from('tours').insert({ ...payload, organization_id: orgId }).select('id')
@@ -141,7 +151,7 @@ export function TourEditor({ tour, onClose }: { tour: Row; onClose: () => void }
     },
     onSuccess: () => {
       message.success('Đã lưu tour')
-      for (const k of ['tours', 'tours-lite']) qc.invalidateQueries({ queryKey: [k] })
+      for (const k of ['tours', 'tours-lite', 'web-tours']) qc.invalidateQueries({ queryKey: [k] })
       onClose()
     },
     onError: (e: Error) => message.error(e.message),
@@ -161,68 +171,81 @@ export function TourEditor({ tour, onClose }: { tour: Row; onClose: () => void }
     message.info(n ? `Đã chép ${n} mục từ bản English, hãy dịch rồi Lưu.` : 'Không có ô trống để chép.')
   }
 
+  const opsInfo = (
+    <>
+      <AntRow gutter={16}>
+        <Col span={8}><Form.Item name="code" label="Mã tour" rules={[{ required: true, message: 'Nhập mã tour' }]}><Input /></Form.Item></Col>
+        <Col span={16}><Form.Item name="name" label="Tên tour" rules={[{ required: true, message: 'Nhập tên tour' }]}><Input /></Form.Item></Col>
+      </AntRow>
+      <AntRow gutter={16}>
+        <Col span={8}><Form.Item name="destination" label="Điểm đến"><Input placeholder="Hanoi" /></Form.Item></Col>
+        <Col span={8}><Form.Item name="duration_minutes" label="Thời lượng (phút)"><InputNumber min={1} style={{ width: '100%' }} /></Form.Item></Col>
+        <Col span={8}><Form.Item name="group_max" label="Số khách tối đa mỗi nhóm"><InputNumber min={1} max={100} style={{ width: '100%' }} /></Form.Item></Col>
+      </AntRow>
+      <AntRow gutter={16}>
+        <Col span={8}><Form.Item name="default_timezone" label="Múi giờ" rules={[{ required: true }]}><Input /></Form.Item></Col>
+        <Col span={8}><Form.Item name="is_active" label="Đang hoạt động" valuePropName="checked"><Switch /></Form.Item></Col>
+      </AntRow>
+      {!isNew && (
+        <Alert type="info" showIcon message={<>Ảnh, nội dung, bản tiếng Việt và việc công khai trên trang đặt tour sửa ở khu <Link to={`/web/tours?edit=${tour.id}`} onClick={onClose}>Website → Tour trên web</Link>.</>} />
+      )}
+    </>
+  )
+
+  const webInfo = (
+    <>
+      <AntRow gutter={16}>
+        <Col span={16}>
+          <Form.Item name="name" label="Tên tour (English)" rules={[{ required: true, message: 'Nhập tên tour tiếng Anh' }]} hidden={vi}><Input /></Form.Item>
+          <Form.Item name={['vi', 'name']} label="Tên tour (Tiếng Việt)" hidden={!vi}><Input placeholder={tour.name} /></Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item name="duration_label" label="Nhãn thời lượng (English)" help='Ví dụ "2 days, 1 night"' hidden={vi}><Input /></Form.Item>
+          <Form.Item name={['vi', 'duration_label']} label="Nhãn thời lượng (Tiếng Việt)" help='Ví dụ "2 ngày 1 đêm"' hidden={!vi}><Input /></Form.Item>
+        </Col>
+      </AntRow>
+      <Form.Item name="is_published" label="Công khai trên trang đặt tour" valuePropName="checked"
+        help="Khách thấy tour, ảnh, nội dung, gói, giá và lịch còn chỗ. Tour phải đang hoạt động (khu Điều hành)."><Switch /></Form.Item>
+    </>
+  )
+
   return (
     <Drawer open width="min(900px, 100vw)" onClose={onClose} destroyOnClose
-      title={isNew ? 'Thêm tour' : `Sửa tour ${tour.code}`}
+      title={isNew ? 'Thêm tour' : web ? `Nội dung web: ${tour.code}` : `Sửa tour ${tour.code}`}
       extra={<Space><Button onClick={onClose}>Hủy</Button><Button type="primary" loading={save.isPending} onClick={() => form.submit()}>Lưu</Button></Space>}>
       <Form form={form} layout="vertical" initialValues={initial} onFinish={(v) => save.mutate(v)}
-        onFinishFailed={() => { setLang('en'); message.error('Còn ô bắt buộc chưa nhập ở tab Thông tin (English)') }}>
-        <Space style={{ marginBottom: 8 }} wrap>
-          <Segmented value={lang} onChange={(v) => setLang(v as 'en' | 'vi')} options={[
-            { value: 'en', label: 'English' },
-            { value: 'vi', label: <Space size={6}>Tiếng Việt<ViBadge form={form} /></Space> },
+        onFinishFailed={() => { setLang('en'); message.error('Còn ô bắt buộc chưa nhập') }}>
+        {web && (
+          <Space style={{ marginBottom: 8 }} wrap>
+            <Segmented value={lang} onChange={(v) => setLang(v as 'en' | 'vi')} options={[
+              { value: 'en', label: 'English' },
+              { value: 'vi', label: <Space size={6}>Tiếng Việt<ViBadge form={form} /></Space> },
+            ]} />
+            <span className="muted">Đổi ngôn ngữ cho tên, nhãn thời lượng và tab Nội dung.</span>
+          </Space>
+        )}
+        {web ? (
+          <Tabs items={[
+            { key: 'info', label: 'Thông tin trên web', forceRender: true, children: webInfo },
+            {
+              key: 'images', label: `Ảnh (${gallery.length})`, forceRender: true,
+              children: <TourGallery value={gallery} onChange={setGallery} orgId={orgId} folder={folder} />,
+            },
+            {
+              key: 'content', label: 'Nội dung', forceRender: true, children: (
+                <>
+                  {vi && (
+                    <Alert type="info" showIcon style={{ marginBottom: 16 }}
+                      message="Khách chọn tiếng Việt thấy các ô có nội dung ở đây; ô nào để trống thì hiện bản tiếng Anh."
+                      action={<Button size="small" onClick={copyEmpty}>Chép bản English vào ô trống</Button>} />
+                  )}
+                  <div style={{ display: vi ? 'none' : undefined }}><ContentFields prefix={[]} /></div>
+                  <div style={{ display: vi ? undefined : 'none' }}><ContentFields prefix={['vi']} /></div>
+                </>
+              ),
+            },
           ]} />
-          <span className="muted">Đổi ngôn ngữ cho tên, nhãn thời lượng và tab Nội dung.</span>
-        </Space>
-        <Tabs items={[
-          {
-            key: 'info', label: 'Thông tin', forceRender: true, children: (
-              <>
-                <AntRow gutter={16}>
-                  <Col span={8}><Form.Item name="code" label="Mã tour" rules={[{ required: true, message: 'Nhập mã tour' }]}><Input /></Form.Item></Col>
-                  <Col span={16}>
-                    <Form.Item name="name" label="Tên tour (English)" rules={[{ required: true, message: 'Nhập tên tour tiếng Anh' }]} hidden={vi}><Input /></Form.Item>
-                    <Form.Item name={['vi', 'name']} label="Tên tour (Tiếng Việt)" hidden={!vi}><Input placeholder={tour.name} /></Form.Item>
-                  </Col>
-                </AntRow>
-                <AntRow gutter={16}>
-                  <Col span={8}><Form.Item name="destination" label="Điểm đến"><Input placeholder="Hanoi" /></Form.Item></Col>
-                  <Col span={8}><Form.Item name="duration_minutes" label="Thời lượng (phút)"><InputNumber min={1} style={{ width: '100%' }} /></Form.Item></Col>
-                  <Col span={8}>
-                    <Form.Item name="duration_label" label="Nhãn thời lượng (English)" help='Ví dụ "2 days, 1 night"' hidden={vi}><Input /></Form.Item>
-                    <Form.Item name={['vi', 'duration_label']} label="Nhãn thời lượng (Tiếng Việt)" help='Ví dụ "2 ngày 1 đêm"' hidden={!vi}><Input /></Form.Item>
-                  </Col>
-                </AntRow>
-                <AntRow gutter={16}>
-                  <Col span={8}><Form.Item name="group_max" label="Số khách tối đa mỗi nhóm"><InputNumber min={1} max={100} style={{ width: '100%' }} /></Form.Item></Col>
-                  <Col span={8}><Form.Item name="default_timezone" label="Múi giờ" rules={[{ required: true }]}><Input /></Form.Item></Col>
-                </AntRow>
-                <AntRow gutter={16}>
-                  <Col span={8}><Form.Item name="is_active" label="Đang hoạt động" valuePropName="checked"><Switch /></Form.Item></Col>
-                  <Col span={16}><Form.Item name="is_published" label="Công khai trên trang đặt tour" valuePropName="checked"
-                    help="Khách thấy tour, ảnh, nội dung, gói, giá và lịch còn chỗ"><Switch /></Form.Item></Col>
-                </AntRow>
-              </>
-            ),
-          },
-          {
-            key: 'images', label: `Ảnh (${gallery.length})`, forceRender: true,
-            children: <TourGallery value={gallery} onChange={setGallery} orgId={orgId} folder={folder} />,
-          },
-          {
-            key: 'content', label: 'Nội dung', forceRender: true, children: (
-              <>
-                {vi && (
-                  <Alert type="info" showIcon style={{ marginBottom: 16 }}
-                    message="Khách chọn tiếng Việt thấy các ô có nội dung ở đây; ô nào để trống thì hiện bản tiếng Anh."
-                    action={<Button size="small" onClick={copyEmpty}>Chép bản English vào ô trống</Button>} />
-                )}
-                <div style={{ display: vi ? 'none' : undefined }}><ContentFields prefix={[]} /></div>
-                <div style={{ display: vi ? undefined : 'none' }}><ContentFields prefix={['vi']} /></div>
-              </>
-            ),
-          },
-        ]} />
+        ) : opsInfo}
       </Form>
     </Drawer>
   )

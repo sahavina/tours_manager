@@ -10,7 +10,7 @@ import { rpcOk } from '../../lib/supabase'
 const FEATURES: { key: string; name: string; hides: string; note?: string; warn?: string }[] = [
   {
     key: 'storefront', name: 'Trang đặt tour cho khách',
-    hides: 'Trang đặt tour công khai báo "không tìm thấy" và không nhận yêu cầu đặt mới. Yêu cầu đã gửi vẫn nằm trong danh sách booking.',
+    hides: 'Trang đặt tour công khai báo "không tìm thấy" và không nhận yêu cầu đặt mới; ẩn khu Website trong trang quản trị. Yêu cầu đã gửi vẫn nằm trong danh sách booking.',
   },
   {
     key: 'operations', name: 'Điều hành, hướng dẫn viên và xe',

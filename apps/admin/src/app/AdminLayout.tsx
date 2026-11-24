@@ -1,17 +1,22 @@
 import {
   ApiOutlined, AuditOutlined, BarChartOutlined, BellOutlined, CalendarOutlined, CarOutlined, CloudUploadOutlined,
-  CompassOutlined, DashboardOutlined, DollarOutlined, MenuOutlined, PlusOutlined, ProfileOutlined, ScheduleOutlined,
-  SettingOutlined, TeamOutlined, UserOutlined,
+  CompassOutlined, DashboardOutlined, DollarOutlined, FileTextOutlined, GlobalOutlined, InboxOutlined, MailOutlined,
+  MenuOutlined, PictureOutlined, PlusOutlined, ProfileOutlined, ScheduleOutlined, SettingOutlined, TagsOutlined, TeamOutlined,
+  UserOutlined,
 } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AutoComplete, Avatar, Badge, Button, Drawer, Dropdown, Grid, Input, Layout, List, Menu, Popover, Select, Space, Typography } from 'antd'
-import { Suspense, useMemo, useState } from 'react'
+import { AutoComplete, Avatar, Badge, Button, Drawer, Dropdown, Grid, Input, Layout, List, Menu, Popover, Segmented, Select, Space, Typography } from 'antd'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { fmtDateTime, Loading } from '../components/common'
 import { rpc, supabase, unwrap, type Row } from '../lib/supabase'
+import { areaOf, rememberArea, type Area } from './area'
 
-const NAV = [
+type NavItem = { key: string; label: string; icon: React.ReactNode; perm: string | string[] }
+
+// Khu Điều hành: vận hành tour, booking, nguồn lực, tài chính, cấu hình.
+const NAV: NavItem[] = [
   { key: '/dashboard', label: 'Tổng quan', icon: <DashboardOutlined />, perm: 'booking.read' },
   { key: '/bookings', label: 'Booking', icon: <ProfileOutlined />, perm: 'booking.read' },
   { key: '/departures', label: 'Lịch khởi hành', icon: <CalendarOutlined />, perm: 'departure.read' },
@@ -25,8 +30,20 @@ const NAV = [
   { key: '/imports', label: 'Nhập dữ liệu', icon: <CloudUploadOutlined />, perm: 'import.manage' },
   { key: '/reports', label: 'Báo cáo', icon: <BarChartOutlined />, perm: 'report.read' },
   { key: '/audit', label: 'Nhật ký hoạt động', icon: <AuditOutlined />, perm: 'audit.read' },
-  { key: '/settings', label: 'Cài đặt', icon: <SettingOutlined />, perm: ['member.manage', 'org.manage', 'catalog.manage'] },
+  { key: '/settings', label: 'Cài đặt', icon: <SettingOutlined />, perm: ['member.manage', 'org.manage'] },
 ]
+
+// Khu Website: mọi thứ khách thấy trên trang đặt tour.
+const WEB_NAV: NavItem[] = [
+  { key: '/web', label: 'Tổng quan website', icon: <GlobalOutlined />, perm: 'web.manage' },
+  { key: '/web/requests', label: 'Yêu cầu đặt tour', icon: <InboxOutlined />, perm: 'booking.read' },
+  { key: '/web/tours', label: 'Tour trên web', icon: <PictureOutlined />, perm: 'web.manage' },
+  { key: '/web/options', label: 'Giá và gói trên web', icon: <TagsOutlined />, perm: 'web.manage' },
+  { key: '/web/content', label: 'Nội dung trang', icon: <FileTextOutlined />, perm: 'web.manage' },
+  { key: '/web/email', label: 'Email thông báo', icon: <MailOutlined />, perm: 'web.manage' },
+]
+const allowed = (items: NavItem[], can: (p: string) => boolean) =>
+  items.filter((n) => (Array.isArray(n.perm) ? n.perm.some(can) : can(n.perm)))
 
 function QuickSearch() {
   const { orgId } = useAuth()
@@ -101,8 +118,29 @@ export function AdminLayout() {
   const [menuOpen, setMenuOpen] = useState(false)
   const isDesktop = screens.lg !== false
 
-  const items = NAV.filter((n) => (Array.isArray(n.perm) ? n.perm.some(can) : can(n.perm))).map(({ key, label, icon }) => ({ key, label, icon }))
-  const selected = items.find((i) => location.pathname.startsWith(i.key))?.key
+  const area: Area = areaOf(location.pathname)
+  useEffect(() => rememberArea(area), [area])
+  // Người chỉ xem được danh mục tour (vai trò Biên tập web) không có khu Điều hành.
+  const opsAll = allowed(NAV, can)
+  const opsItems = opsAll.some((i) => i.key !== '/tours') || can('catalog.manage') ? opsAll : []
+  // Người chỉ có quyền Website không thấy trang "Yêu cầu đặt tour" nếu không được xem booking (lọc theo quyền ở trên).
+  const webItems = can('web.manage') ? allowed(WEB_NAV, can) : []
+  const both = opsItems.length > 0 && webItems.length > 0
+  const items = (area === 'web' ? webItems : opsItems).map(({ key, label, icon }) => ({ key, label, icon }))
+  // Mục khớp dài nhất (để /web/tours không chọn nhầm /web).
+  const selected = items.filter((i) => location.pathname === i.key || location.pathname.startsWith(i.key + '/'))
+    .sort((a, b) => b.key.length - a.key.length)[0]?.key
+  const switchArea = (a: Area) => nav(a === 'web' ? webItems[0]!.key : opsItems[0]!.key)
+  const brand = (
+    <div style={{ padding: '16px 20px 8px' }}>
+      <div style={{ fontWeight: 700, fontSize: 16, color: area === 'web' ? '#7c3aed' : '#0f766e' }}>SAHA Tour Hub</div>
+      <div className="muted" style={{ fontSize: 12 }}>{area === 'web' ? 'Website đặt tour' : 'Điều hành'}</div>
+      {both && (
+        <Segmented block size="small" style={{ marginTop: 10 }} value={area} onChange={(v) => { switchArea(v as Area); setMenuOpen(false) }}
+          options={[{ value: 'ops', label: 'Điều hành' }, { value: 'web', label: 'Website' }]} />
+      )}
+    </div>
+  )
 
   const menu = (
     <Menu mode="inline" selectedKeys={selected ? [selected] : []} items={items} style={{ borderInlineEnd: 0 }}
@@ -113,11 +151,12 @@ export function AdminLayout() {
     <Layout style={{ minHeight: '100vh' }}>
       {isDesktop && (
         <Layout.Sider width={232} theme="light" style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'auto', borderInlineEnd: '1px solid #eef0f3' }}>
-          <div style={{ padding: '16px 20px', fontWeight: 700, fontSize: 16, color: '#0f766e' }}>SAHA Tour Hub</div>
+          {brand}
           {menu}
         </Layout.Sider>
       )}
-      <Drawer placement="left" open={!isDesktop && menuOpen} onClose={() => setMenuOpen(false)} width={260} title="SAHA Tour Hub" styles={{ body: { padding: 0 } }}>
+      <Drawer placement="left" open={!isDesktop && menuOpen} onClose={() => setMenuOpen(false)} width={260} title={null} styles={{ body: { padding: 0 } }}>
+        {brand}
         {menu}
       </Drawer>
       <Layout>
@@ -127,7 +166,11 @@ export function AdminLayout() {
             ? <Select value={org?.organization_id} onChange={switchOrg} style={{ minWidth: 180 }} options={orgs.map((o) => ({ value: o.organization_id, label: o.name }))} aria-label="Doanh nghiệp" />
             : <Typography.Text strong className="nowrap">{org?.name}</Typography.Text>)}
           <div style={{ flex: 1, minWidth: 0 }}><QuickSearch /></div>
-          {can('booking.manage') && (
+          {both && !isDesktop && (
+            <Segmented size="small" value={area} onChange={(v) => switchArea(v as Area)}
+              options={[{ value: 'ops', label: 'Điều hành' }, { value: 'web', label: 'Web' }]} />
+          )}
+          {area === 'ops' && can('booking.manage') && (
             <Button type="primary" icon={<PlusOutlined />} onClick={() => nav('/bookings?new=1')}>{screens.md !== false ? 'Tạo booking' : ''}</Button>
           )}
           <Notifications />
