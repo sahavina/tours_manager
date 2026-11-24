@@ -7,6 +7,9 @@
   "main": "worker/index.ts",
   "compatibility_date": "2026-10-01",
   "observability": { "enabled": true },
+  // Giữ địa chỉ saha-tour-hub.<account>.workers.dev, cộng tên miền riêng cho trang quản trị.
+  "workers_dev": true,
+  "routes": [{ "pattern": "admin.hanoiadventuretours.com", "custom_domain": true }],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
@@ -16,6 +19,6 @@
   "vars": {
     "SUPABASE_URL": "https://api-tourhub.217-216-39-53.sslip.io",
     // Trang quản trị: link đặt mật khẩu chuyển về đây (phải nằm trong GOTRUE_URI_ALLOW_LIST).
-    "SITE_URL": "https://saha-tour-hub.chungnd-dsc.workers.dev"
+    "SITE_URL": "https://admin.hanoiadventuretours.com"
   }
 }
