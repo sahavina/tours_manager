@@ -19,11 +19,12 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    // Chỉ API đi qua Worker; mọi đường dẫn khác trả file tĩnh trực tiếp.
-    "run_worker_first": ["/api/*"]
+    // API, trang có thẻ SEO, robots.txt, sitemap.xml đi qua Worker; file tĩnh (js, css, ảnh) trả trực tiếp.
+    "run_worker_first": ["/api/*", "/", "/tours", "/tours/", "/tour/*", "/robots.txt", "/sitemap.xml"]
   },
   "vars": {
     "SUPABASE_URL": "https://api-tourhub.217-216-39-53.sslip.io",
+    "STOREFRONT_ORG": "hanoi-jeep",
     // Tên miền trang khách được chấp nhận trong kết quả siteverify (không gồm localhost).
     "TURNSTILE_HOSTNAMES": "hanoiadventuretours.com,www.hanoiadventuretours.com,saha-tour-store.chungnd-dsc.workers.dev"
   }

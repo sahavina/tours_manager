@@ -7,6 +7,8 @@
 // require_verified_booking khách vẫn đặt được (chỉ ghi log lý do), bật rồi thì database trả verification_required.
 // Bí mật (secrets): TURNSTILE_SECRET, SUPABASE_SERVICE_ROLE_KEY.
 
+import { robots, seoPage, sitemap } from './seo'
+
 interface Env {
   ASSETS: { fetch: (req: Request) => Promise<Response> }
   SUPABASE_URL: string
@@ -15,6 +17,7 @@ interface Env {
   SUPABASE_SERVICE_ROLE_KEY?: string
   // Khóa công khai (cũng có trong trang khách): dùng khi Turnstile không qua, để database tự quyết theo require_verified_booking.
   SUPABASE_ANON_KEY?: string
+  STOREFRONT_ORG?: string
 }
 
 const ACTION = 'booking'
@@ -92,6 +95,19 @@ export default {
     if (url.pathname === '/api/booking-request') {
       if (req.method !== 'POST') return json({ ok: false, code: 'method_not_allowed' }, 405)
       return bookingRequest(req, env)
+    }
+    if (req.method === 'GET') {
+      if (url.pathname === '/robots.txt') return robots(url, env)
+      if (url.pathname === '/sitemap.xml') return sitemap(url, env)
+      // Trang HTML có thẻ SEO riêng (các đường dẫn khác vẫn là file tĩnh hoặc SPA như cũ).
+      if (url.pathname === '/' || url.pathname === '/tours' || url.pathname === '/tours/' || /^\/tour\/[^/]+\/?$/.test(url.pathname)) {
+        try {
+          return await seoPage(req, env)
+        } catch (e) {
+          console.error('seo page failed', String(e))
+          return env.ASSETS.fetch(req)
+        }
+      }
     }
     return env.ASSETS.fetch(req)
   },

@@ -16,6 +16,7 @@ type Settings = Record<string, unknown> & {
   review_widgets?: { provider: 'tripadvisor'; type: string; location_id: string; uniq: string; lang?: string }[]
   destinations_vi?: Record<string, string>
   require_verified_booking?: boolean
+  seo_index?: boolean
 }
 
 const ICONS = [
@@ -101,6 +102,7 @@ export function StorefrontTab() {
         contact: clean(v.contact ?? {}),
         cancel_free_hours: v.cancel_free_hours ?? undefined,
         require_verified_booking: Boolean(v.require_verified_booking),
+        seo_index: Boolean(v.seo_index),
         why: (v.why ?? []).map((w) => ({ ...w, vi: clean(w.vi ?? {}) })).map((w) => (Object.keys(w.vi).length ? w : { icon: w.icon, title: w.title, text: w.text })),
         reviews: (v.reviews ?? []).map((r) => withVi(r) as NonNullable<Settings['reviews']>[number]),
         review_widgets: (v.review_widgets ?? []).map((w) => withVi(w) as NonNullable<Settings['review_widgets']>[number]),
@@ -172,6 +174,12 @@ export function StorefrontTab() {
         <Col xs={24} md={12}>
           <Form.Item name="require_verified_booking" label="Bắt buộc xác minh chống bot khi đặt tour" valuePropName="checked"
             extra="Bật thì chỉ yêu cầu đã qua Cloudflare Turnstile mới tạo được booking; gọi thẳng API bị từ chối. Chỉ bật khi trang đặt tour đã cấu hình Turnstile, nếu không khách sẽ không gửi được yêu cầu.">
+            <Switch />
+          </Form.Item>
+        </Col>
+        <Col xs={24} md={12}>
+          <Form.Item name="seo_index" label="Cho Google lập chỉ mục trang đặt tour" valuePropName="checked"
+            extra="Bật thì Google được tìm và hiện các trang tour (có sitemap.xml). Tắt thì trang vẫn mở được và vẫn có ảnh xem trước khi chia sẻ link, nhưng không lên kết quả tìm kiếm.">
             <Switch />
           </Form.Item>
         </Col>
