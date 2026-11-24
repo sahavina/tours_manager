@@ -12,6 +12,8 @@ export type OrgContext = {
   role_key: string
   role_name: string
   permissions: string[]
+  /** Tính năng doanh nghiệp đang tắt; quyền thuộc các tính năng này đã bị bỏ khỏi permissions. */
+  disabled_features?: string[]
 }
 
 type AuthValue = {
