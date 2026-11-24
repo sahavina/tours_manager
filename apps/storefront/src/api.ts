@@ -4,6 +4,8 @@ const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
 export const ORG = (import.meta.env.VITE_STOREFRONT_ORG as string | undefined) || 'hanoi-jeep'
 export const configured = Boolean(url && key)
+// Có sitekey thì form đặt tour gửi qua Worker (/api/booking-request) kèm token Cloudflare Turnstile.
+export const TURNSTILE_SITEKEY = (import.meta.env.VITE_TURNSTILE_SITEKEY as string | undefined) || ''
 
 const client = configured ? createClient(url!, key!, { auth: { persistSession: false, autoRefreshToken: false } }) : null
 
@@ -88,9 +90,24 @@ export const api = {
     call<{ slots: Slot[] }>('public_availability', { p_slug: ORG, p_option_code: option, p_from: from, p_to: to }),
   quote: (option: string, pax: Record<string, number>) =>
     call<{ amount: number | null; currency: string }>('public_quote', { p_slug: ORG, p_option_code: option, p_pax: pax }),
-  request: (a: { option: string; date: string; time: string; pax: Record<string, number>; contact: { name: string; email: string; phone?: string }; hotel?: string; note?: string }) =>
-    call<BookingResult>('public_booking_request', {
+  request: async (a: { option: string; date: string; time: string; pax: Record<string, number>; contact: { name: string; email: string; phone?: string }; hotel?: string; note?: string; token?: string }) => {
+    if (TURNSTILE_SITEKEY) {
+      let res: Response
+      try {
+        res = await fetch('/api/booking-request', {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ token: a.token ?? '', slug: ORG, option: a.option, date: a.date, time: a.time, pax: a.pax, contact: a.contact, hotel: a.hotel || null, note: a.note || null }),
+        })
+      } catch {
+        throw new ApiError('network')
+      }
+      const data = (await res.json().catch(() => null)) as (BookingResult & { ok?: boolean; code?: string }) | null
+      if (!data || data.ok === false) throw new ApiError(data?.code ?? 'server')
+      return data as BookingResult
+    }
+    return call<BookingResult>('public_booking_request', {
       p_slug: ORG, p_option_code: a.option, p_date: a.date, p_time: a.time, p_pax: a.pax,
       p_contact: a.contact, p_hotel: a.hotel || null, p_note: a.note || null,
-    }),
+    })
+  },
 }

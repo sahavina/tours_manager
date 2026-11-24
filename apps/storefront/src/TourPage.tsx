@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { api, ApiError, type BookingResult, type Option, type Slot, type Step, type TourCard, type TourDetail } from './api'
+import { api, ApiError, TURNSTILE_SITEKEY, type BookingResult, type Option, type Slot, type Step, type TourCard, type TourDetail } from './api'
 import { displayName, durationText, localized, money, useI18n } from './i18n'
+import { Turnstile, type TurnstileHandle } from './Turnstile'
 import { Cover, TourCardView, waLink } from './ui'
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -88,6 +89,10 @@ export function TourPage() {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState<BookingResult | null>(null)
+  // Token Turnstile (khi trang có sitekey): dùng một lần, gửi xong thì reset để lấy token mới.
+  const [captcha, setCaptcha] = useState<string | null>(null)
+  const [captchaDown, setCaptchaDown] = useState(false)
+  const captchaRef = useRef<TurnstileHandle>(null)
   const bookRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -219,6 +224,7 @@ export function TourPage() {
       const r = await api.request({
         option, date: slot.date, time: slot.time, pax,
         contact: { name: form.name, email: form.email, phone: form.phone || undefined }, hotel: form.hotel, note: form.note,
+        token: captcha ?? undefined,
       })
       setDone(r)
       window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -231,6 +237,7 @@ export function TourPage() {
       }
     } finally {
       setSending(false)
+      captchaRef.current?.reset()
     }
   }
 
@@ -433,7 +440,10 @@ export function TourPage() {
                   <textarea maxLength={1000} rows={2} placeholder={t.note} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
                 </div>
                 {error && <p className="notice notice-error" role="alert">{error}</p>}
-                <button className="btn btn-block" disabled={sending}>{sending ? t.sending : t.send}</button>
+                {TURNSTILE_SITEKEY && <Turnstile ref={captchaRef} sitekey={TURNSTILE_SITEKEY} action="booking" lang={lang} onToken={(t) => { setCaptcha(t); if (t) setCaptchaDown(false) }} onUnavailable={() => setCaptchaDown(true)} />}
+                <button className="btn btn-block" disabled={sending || (Boolean(TURNSTILE_SITEKEY) && !captcha && !captchaDown)}>
+                  {sending ? t.sending : TURNSTILE_SITEKEY && !captcha && !captchaDown ? t.verifying : t.send}
+                </button>
               </form>
             )}
             {contact.whatsapp && (

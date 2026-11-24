@@ -22,6 +22,12 @@ function Shell() {
   const { lang, setLang, t, place, setPlaces } = useI18n()
   // Tên doanh nghiệp, liên hệ và điểm đến lấy từ database, dùng cho mọi trang.
   const [store, setStore] = useState<Storefront | null>(null)
+  // Menu trên điện thoại: mở bằng nút ☰, tự đóng khi đổi trang.
+  const [menu, setMenu] = useState(false)
+  const { pathname, hash } = useLocation()
+  useEffect(() => {
+    setMenu(false)
+  }, [pathname, hash])
   useEffect(() => {
     if (!configured) return
     api.storefront().then((s) => { setStore(s); setPlaces(s.settings.destinations_vi ?? {}) }).catch(() => setStore(null))
@@ -47,18 +53,23 @@ function Shell() {
             <span className="brand-mark" aria-hidden>◆</span>
             <span>{store?.name || t.ourTours}</span>
           </Link>
-          <nav className="nav">
+          <nav className={`nav${menu ? ' open' : ''}`} id="site-nav">
             <Link to="/tours">{t.navTours}</Link>
             <Link to="/#destinations">{t.navDestinations}</Link>
             <Link to="/#faq">{t.navFaq}</Link>
-            <a href="#contact">{t.navContact}</a>
+            <a href="#contact" onClick={() => setMenu(false)}>{t.navContact}</a>
+            <Link to="/tours" className="btn nav-menu-cta">{t.bookTour}</Link>
           </nav>
           <div className="lang" role="group" aria-label="Language">
             <button className={lang === 'en' ? 'on' : ''} onClick={() => setLang('en')}>EN</button>
             <button className={lang === 'vi' ? 'on' : ''} onClick={() => setLang('vi')}>VI</button>
           </div>
           <Link to="/tours" className="btn btn-small nav-cta">{t.bookTour}</Link>
+          <button className="menu-btn" aria-label="Menu" aria-expanded={menu} aria-controls="site-nav" onClick={() => setMenu(!menu)}>
+            <span aria-hidden>{menu ? '✕' : '☰'}</span>
+          </button>
         </div>
+        {menu && <div className="nav-backdrop" onClick={() => setMenu(false)} aria-hidden />}
       </header>
       <Routes>
         <Route path="/" element={<HomePage />} />

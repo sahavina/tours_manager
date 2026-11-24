@@ -103,7 +103,7 @@ export function HomePage() {
       {data && destinations.length > 0 && (
         <section className="wrap section" id="destinations">
           <h2>{t.destinations}</h2>
-          <div className="dest-grid">
+          <div className="dest-grid snap-row">
             {destinations.map(([d, v]) => (
               <Link key={d} to={`/tours?dest=${encodeURIComponent(d)}`} className="dest">
                 <Cover url={v.image} title={place(d)} className="dest-img" />
@@ -121,7 +121,7 @@ export function HomePage() {
             <h2>{t.ourTours}</h2>
             <Link to="/tours" className="cta">{t.viewAll(data.tours.length)} →</Link>
           </div>
-          <div className="grid">{featured.map((tour) => <TourCardView key={tour.code} tour={tour} />)}</div>
+          <div className="grid snap-row">{featured.map((tour) => <TourCardView key={tour.code} tour={tour} />)}</div>
         </section>
       )}
 

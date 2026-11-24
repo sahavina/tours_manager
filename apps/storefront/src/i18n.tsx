@@ -114,6 +114,7 @@ const en = {
   bookAnother: 'Back to tours',
   footer: 'Bookings are confirmed by the operator. Prices in the currency shown.',
   weekdays: ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'],
+  verifying: 'Checking your browser…',
   errors: {
     no_availability: 'Those seats were just taken. Please pick another time.',
     invalid_email: 'Please enter a valid email.',
@@ -126,6 +127,8 @@ const en = {
     network: 'Connection problem. Please try again.',
     server: 'Something went wrong. Please try again.',
     not_configured: 'This site is not connected to the booking system yet.',
+    verification_failed: 'We could not verify you are human. Please complete the check and try again.',
+    verification_required: 'Please complete the security check and try again.',
   } as Record<string, string>,
 }
 
@@ -241,6 +244,7 @@ const vi: typeof en = {
   bookAnother: 'Về danh sách tour',
   footer: 'Booking được đơn vị tổ chức xác nhận. Giá theo đơn vị tiền tệ hiển thị.',
   weekdays: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
+  verifying: 'Đang kiểm tra bảo mật…',
   errors: {
     no_availability: 'Chỗ vừa được người khác đặt. Vui lòng chọn giờ khác.',
     invalid_email: 'Email chưa hợp lệ.',
@@ -253,6 +257,8 @@ const vi: typeof en = {
     network: 'Lỗi kết nối. Vui lòng thử lại.',
     server: 'Có lỗi xảy ra. Vui lòng thử lại.',
     not_configured: 'Trang chưa được nối với hệ thống đặt chỗ.',
+    verification_failed: 'Chưa xác minh được bạn không phải bot. Vui lòng làm bước kiểm tra rồi gửi lại.',
+    verification_required: 'Vui lòng làm bước kiểm tra bảo mật rồi gửi lại.',
   },
 }
 

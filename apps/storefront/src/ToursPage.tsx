@@ -63,7 +63,7 @@ export function ToursPage() {
         ? <p className="notice">{t.noMatch} <button className="linkbtn" onClick={() => setParams({}, { replace: true })}>{t.clearFilters}</button></p>
         : <>
             <p className="muted small">{t.toursCount(list.length)}</p>
-            <div className="grid">{list.map((tour) => <TourCardView key={tour.code} tour={tour} date={date} />)}</div>
+            <div className="grid list-grid">{list.map((tour) => <TourCardView key={tour.code} tour={tour} date={date} />)}</div>
           </>)}
     </main>
   )
