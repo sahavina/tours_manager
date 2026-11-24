@@ -7,6 +7,20 @@ import 'antd/dist/reset.css'
 import './app/app.css'
 import { App } from './app/App'
 
+// Sau mỗi lần deploy, tab đang mở vẫn giữ trang cũ và đòi các file đã bị thay (server trả về HTML, trang trắng).
+// Khi tải một phần trang thất bại thì tải lại cả trang một lần để lấy bản mới; không lặp vô hạn (cách nhau 30 giây).
+window.addEventListener('vite:preloadError', (e) => {
+  try {
+    const last = Number(sessionStorage.getItem('admin.reloadAt') ?? 0)
+    if (Date.now() - last < 30_000) return
+    sessionStorage.setItem('admin.reloadAt', String(Date.now()))
+  } catch {
+    /* không có sessionStorage thì vẫn tải lại */
+  }
+  e.preventDefault()
+  window.location.reload()
+})
+
 const container = document.getElementById('root')
 if (!container) throw new Error('Root element not found')
 

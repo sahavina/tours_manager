@@ -12,6 +12,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { fmtDateTime, Loading } from '../components/common'
 import { rpc, supabase, unwrap, type Row } from '../lib/supabase'
 import { areaOf, rememberArea, type Area } from './area'
+import { ChangePasswordModal } from '../auth/ChangePasswordModal'
 
 type NavItem = { key: string; label: string; icon: React.ReactNode; perm: string | string[] }
 
@@ -116,6 +117,7 @@ export function AdminLayout() {
   const nav = useNavigate()
   const screens = Grid.useBreakpoint()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [changePw, setChangePw] = useState(false)
   const isDesktop = screens.lg !== false
 
   const area: Area = areaOf(location.pathname)
@@ -178,11 +180,13 @@ export function AdminLayout() {
             { key: 'who', disabled: true, label: <div>{session?.user.email}<div className="muted">{org?.role_name}</div></div> },
             { type: 'divider' },
             ...(can('guide.portal') ? [{ key: 'guide', label: 'Giao diện hướng dẫn viên', onClick: () => nav('/guide') }] : []),
+            { key: 'pw', label: 'Đổi mật khẩu', onClick: () => setChangePw(true) },
             { key: 'out', label: 'Đăng xuất', onClick: () => void signOut() },
           ] }}>
             <Avatar style={{ background: '#0f766e', cursor: 'pointer', flex: 'none' }} icon={<UserOutlined />} />
           </Dropdown>
         </Layout.Header>
+        <ChangePasswordModal open={changePw} onClose={() => setChangePw(false)} />
         <Layout.Content style={{ padding: 20 }}>
           <Suspense fallback={<Loading />}><Outlet /></Suspense>
         </Layout.Content>

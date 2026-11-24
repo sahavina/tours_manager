@@ -6,6 +6,7 @@ import { Alert, App, Avatar, Button, Checkbox, Drawer, Form, Input, Modal, Selec
 import { useMemo, useState } from 'react'
 import { useAuth } from '../../auth/AuthProvider'
 import { ErrorState, NoData } from '../../components/common'
+import { ChangePasswordModal } from '../../auth/ChangePasswordModal'
 import { accountsApi } from '../../lib/accounts'
 import { rpc, rpcOk, supabase, unwrap, type Row } from '../../lib/supabase'
 
@@ -84,6 +85,7 @@ export function MembersTab() {
   const members = useQuery({ queryKey: ['members', orgId], enabled: can('member.manage'), queryFn: () => rpc<Row[]>('member_list', { p_org: orgId }) })
   // Link đặt mật khẩu vừa tạo (tài khoản mới hoặc đặt lại), hiện một lần để người quản lý gửi cho thành viên.
   const [linkFor, setLinkFor] = useState<{ email: string; link: string; created: boolean } | null>(null)
+  const [changePw, setChangePw] = useState(false)
   const save = useMutation({
     mutationFn: async (v: Row) => {
       // Thêm thành viên mới: chưa có tài khoản thì tạo trước (qua API của Worker, cần khóa service).
@@ -180,7 +182,9 @@ export function MembersTab() {
             { title: 'Trạng thái', render: (_, m) => (m.is_active ? <Tag color="green">Hoạt động</Tag> : <Tag>Đã khóa</Tag>) },
             { title: '', align: 'right', render: (_, m) => (
               <Space size={4}>
-                {m.user_id !== session?.user.id && (
+                {m.user_id === session?.user.id ? (
+                  <Button size="small" onClick={(e) => { e.stopPropagation(); setChangePw(true) }}>Đổi mật khẩu</Button>
+                ) : (
                   <Button size="small" loading={reset.isPending && reset.variables === m.email}
                     onClick={(e) => { e.stopPropagation(); reset.mutate(String(m.email)) }}>Link đặt mật khẩu</Button>
                 )}
@@ -190,6 +194,7 @@ export function MembersTab() {
           ]} />
       )}
 
+      <ChangePasswordModal open={changePw} onClose={() => setChangePw(false)} />
       <Modal open={Boolean(linkFor)} onCancel={() => setLinkFor(null)} onOk={() => setLinkFor(null)} okText="Xong" cancelButtonProps={{ style: { display: 'none' } }}
         title={linkFor?.created ? 'Đã tạo tài khoản' : 'Link đặt lại mật khẩu'}>
         {linkFor && (

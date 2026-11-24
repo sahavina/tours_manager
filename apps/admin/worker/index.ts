@@ -20,6 +20,22 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } })
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
+// GoTrue tự cài sau proxy /auth/v1 tạo link dạng <api>/verify?...; đường dẫn đúng qua Caddy là <api>/auth/v1/verify.
+export function fixVerifyLink(link: string, supabaseUrl: string): string {
+  try {
+    const u = new URL(link)
+    if (u.pathname === '/verify') {
+      const base = new URL(supabaseUrl)
+      u.protocol = base.protocol
+      u.host = base.host
+      u.pathname = '/auth/v1/verify'
+    }
+    return u.toString()
+  } catch {
+    return link
+  }
+}
+
 async function accounts(req: Request, env: Env): Promise<Response> {
   if (!env.SUPABASE_SERVICE_ROLE_KEY || !env.SUPABASE_ANON_KEY) return json({ ok: false, code: 'server' }, 500)
   const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? ''
@@ -72,7 +88,7 @@ async function accounts(req: Request, env: Env): Promise<Response> {
   const data = (await link.json()) as { action_link?: string; properties?: { action_link?: string } }
   const action = data.action_link ?? data.properties?.action_link
   if (!action) return json({ ok: false, code: 'server', created }, 502)
-  return json({ ok: true, created, link: action })
+  return json({ ok: true, created, link: fixVerifyLink(action, env.SUPABASE_URL) })
 }
 
 export default {
