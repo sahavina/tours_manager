@@ -2,7 +2,7 @@ import { PlusOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { App, Button, Card, Drawer, Form, Input, InputNumber, Popconfirm, Select, Space, Switch, Table, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { ErrorState, NoData, PageHead } from './common'
@@ -99,10 +99,25 @@ export function CrudPage(p: Props) {
     onError: (e: Error) => message.error(e.message),
   })
 
-  const open = (row: Row | null) => (p.onEdit ? p.onEdit(row) : setEditing(row ? (p.mapBeforeEdit ? p.mapBeforeEdit(row) : row) : {}))
+  const [openCount, setOpenCount] = useState(0)
+  const open = (row: Row | null) => {
+    if (p.onEdit) return p.onEdit(row)
+    setOpenCount((n) => n + 1)
+    const values = row ? (p.mapBeforeEdit ? p.mapBeforeEdit(row) : row) : {}
+    setEditing(values)
+  }
+
   // initialValues, không dùng form.setFieldsValue: Drawer destroyOnClose nên Form chưa mount lúc bấm mở, giá
   // trị đặt trước bị mất; hậu quả là form sửa mở ra trống và trường bắt buộc có mặc định chặn nút Lưu.
   const defaults = Object.fromEntries(p.fields.filter((f) => f.defaultValue !== undefined).map((f) => [f.name, f.defaultValue]))
+  // Sau khi khung sửa hiện ra (form đã gắn), nạp đúng giá trị của dòng đang mở. initialValues chỉ áp dụng
+  // lần gắn đầu nên không đủ khi đóng rồi mở dòng khác nhanh.
+  useEffect(() => {
+    if (!editing) return
+    form.resetFields()
+    form.setFieldsValue(editing.id ? editing : defaults)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing, openCount])
 
   const columns: ColumnsType<Row> = [
     ...p.columns,
@@ -140,7 +155,9 @@ export function CrudPage(p: Props) {
       )}
       <Drawer title={editing?.id ? 'Sửa' : 'Thêm mới'} open={Boolean(editing)} onClose={() => setEditing(null)} width={480} destroyOnClose
         extra={<Button type="primary" loading={save.isPending} onClick={() => form.submit()}>Lưu</Button>}>
-        <Form form={form} layout="vertical" onFinish={(v) => save.mutate(v)} preserve={false}
+        {/* key theo dòng đang sửa: mỗi lần mở dòng khác là form mới với đúng dữ liệu của dòng đó. Không có key,
+            đóng rồi mở nhanh dòng khác thì form cũ chưa kịp hủy, hiện dữ liệu dòng trước hoặc ô trống. */}
+        <Form key={editing ? String(editing.id ?? 'new') + ':' + openCount : 'closed'} form={form} layout="vertical" onFinish={(v) => save.mutate(v)} preserve={false}
           initialValues={editing?.id ? editing : defaults}>
           {p.fields.map((f) => (
             <Form.Item key={f.name} name={f.name} label={f.label} help={f.help} valuePropName={f.type === 'switch' ? 'checked' : 'value'}
