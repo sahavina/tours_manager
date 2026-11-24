@@ -4,6 +4,7 @@
 import { mockAvailability, mockCatalog } from '@tours/channels'
 import { sendAvailabilityUpdate, type NotifyConfig, type NotifyTarget } from '@tours/gyg'
 import type { Pool, PoolClient } from 'pg'
+import { sendOutboxEmails, smtpSender, type Sender } from './email.ts'
 
 export type Log = (level: 'info' | 'warn' | 'error', msg: string, extra?: Record<string, unknown>) => void
 
@@ -80,11 +81,15 @@ export async function pushGygAvailability(
  * simulated: KHÔNG có request nào đi ra ngoài; kết nối không-mock chưa có connector bị ghi needs_connector
  * thay vì báo thành công.
  */
-export async function drainOutbox(pool: Pool, log: Log, limit = 50, gyg: NotifyConfig | null = gygNotifyConfig()): Promise<number> {
+export async function drainOutbox(
+  pool: Pool, log: Log, limit = 50, gyg: NotifyConfig | null = gygNotifyConfig(), mail: Sender = smtpSender(),
+): Promise<number> {
   const { rows } = await pool.query('select * from public.worker_claim_outbox($1)', [limit])
   for (const e of rows) {
     try {
       await pool.query('select public.worker_notify($1)', [e.id])
+      // Email yêu cầu đặt từ website và email thử; lỗi gửi được ghi vào email_log, không làm hỏng outbox.
+      if (e.topic === 'booking.created' || e.topic === 'email.test') await sendOutboxEmails(pool, log, Number(e.id), mail)
       if (e.topic === 'availability.changed') {
         const pushed = await pushGygAvailability(pool, log, e, gyg)
         await pool.query(

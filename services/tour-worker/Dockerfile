@@ -6,6 +6,8 @@ COPY pnpm-workspace.yaml package.json ./
 COPY services/tour-worker/package.json services/tour-worker/
 COPY packages/channels/package.json packages/channels/
 COPY packages/channels/src packages/channels/src
+COPY packages/gyg/package.json packages/gyg/
+COPY packages/gyg/src packages/gyg/src
 RUN pnpm install --filter @tours/worker... --prod --no-frozen-lockfile
 COPY services/tour-worker/src services/tour-worker/src
 WORKDIR /app/services/tour-worker
