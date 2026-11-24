@@ -16,9 +16,11 @@ type Booking = {
   id: string; code: string; reference: string; lead_name: string; lead_email: string; lead_phone: string | null
   note: string | null; amount: number | null; currency: string | null; items: Item[]
 }
+export type Contact = { whatsapp?: string; zalo?: string; email?: string; phone?: string }
 export type EmailJob =
   | { kind: 'test'; org_name: string; settings: EmailSettings; to: string }
-  | { kind: 'booking'; org_name: string; settings: EmailSettings; booking: Booking; sent: string[] }
+  | { kind: 'booking'; org_name: string; settings: EmailSettings; contact?: Contact; booking: Booking; sent: string[] }
+  | { kind: 'status'; status_to: 'confirmed' | 'cancelled'; status_from: string; org_name: string; settings: EmailSettings; contact?: Contact; booking: Booking; sent: string[] }
 
 export type Mail = { to: string; subject: string; text: string; html: string; replyTo?: string }
 export type Sender = (settings: EmailSettings, mail: Mail) => Promise<void>
@@ -74,7 +76,40 @@ export function customerMail(job: Extract<EmailJob, { kind: 'booking' }>): Omit<
   const text = `${intro}\n\n${rows.filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join('\n')}\n\nReply to this email if you have any questions.`
   const html = wrapHtml('Booking request received', `<p style="font-size:14px">${esc(intro)}</p>${table(rows)}<p style="font-size:14px">Reply to this email if you have any questions.</p>`,
     `${job.org_name}`)
-  return { subject, text, html, replyTo: job.settings.staff_to?.[0] }
+  return { subject, text, html, replyTo: job.contact?.email ?? job.settings.staff_to?.[0] }
+}
+
+const contactLines = (c: Contact | undefined) =>
+  [c?.whatsapp && `WhatsApp: ${c.whatsapp}`, c?.phone && c.phone !== c.whatsapp && `Phone: ${c.phone}`, c?.email && `Email: ${c.email}`]
+    .filter(Boolean) as string[]
+
+/** Email báo khách khi yêu cầu được xác nhận hoặc bị hủy/từ chối (tiếng Anh). */
+export function customerStatusMail(job: Extract<EmailJob, { kind: 'status' }>): Omit<Mail, 'to'> {
+  const b = job.booking
+  const confirmed = job.status_to === 'confirmed'
+  const rejected = !confirmed && job.status_from === 'pending'
+  const subject = confirmed
+    ? `Your booking ${b.code} is confirmed – ${job.org_name}`
+    : rejected ? `We could not confirm your booking request ${b.code} – ${job.org_name}` : `Your booking ${b.code} has been cancelled – ${job.org_name}`
+  const intro = confirmed
+    ? `Hi ${b.lead_name}, good news: your booking with ${job.org_name} is confirmed. We look forward to seeing you!`
+    : rejected
+      ? `Hi ${b.lead_name}, we are sorry, we could not confirm your booking request with ${job.org_name}. No payment was taken. Please contact us and we will gladly suggest another date or tour.`
+      : `Hi ${b.lead_name}, your booking with ${job.org_name} has been cancelled. If this is unexpected, please contact us.`
+  const rows: [string, string | null | undefined][] = [
+    ['Booking code', b.code],
+    ...b.items.flatMap((i): [string, string | null][] => [
+      ['Tour', i.tour], ['Option', i.option], ['Date & time', `${i.date} ${i.time}`], ['Travelers', paxText(i.pax, false)], ['Pickup', i.hotel],
+    ]),
+    ...(confirmed ? [['Total', money(b)] as [string, string | null]] : []),
+  ]
+  const contact = contactLines(job.contact)
+  const contactText = contact.length ? `\n\nContact us:\n${contact.join('\n')}` : ''
+  const text = `${intro}\n\n${rows.filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join('\n')}${contactText}`
+  const html = wrapHtml(confirmed ? 'Booking confirmed' : rejected ? 'Booking request not confirmed' : 'Booking cancelled',
+    `<p style="font-size:14px">${esc(intro)}</p>${table(rows)}${contact.length ? `<p style="font-size:14px">Contact us:<br>${contact.map(esc).join('<br>')}</p>` : ''}`,
+    job.org_name)
+  return { subject, text, html, replyTo: job.contact?.email ?? job.settings.staff_to?.[0] }
 }
 
 /** Gửi qua SMTP bằng cấu hình doanh nghiệp + SMTP_PASSWORD. */
@@ -106,6 +141,10 @@ export async function sendOutboxEmails(pool: Pool, log: Log, outboxId: number, s
       text: 'Cấu hình gửi email của trang đặt tour đang hoạt động.',
       html: wrapHtml('Email thử', '<p>Cấu hình gửi email của trang đặt tour đang hoạt động.</p>', job.org_name),
     } })
+  } else if (job.kind === 'status') {
+    if (job.settings.notify_customer && job.booking.lead_email) {
+      plan.push({ kind: job.status_to === 'confirmed' ? 'customer_confirmed' : 'customer_cancelled', to: job.booking.lead_email, mail: customerStatusMail(job) })
+    }
   } else {
     if (job.settings.notify_staff !== false) {
       for (const to of job.settings.staff_to ?? []) plan.push({ kind: 'staff_new_booking', to, mail: staffMail(job, adminUrl) })
@@ -116,7 +155,7 @@ export async function sendOutboxEmails(pool: Pool, log: Log, outboxId: number, s
   }
   let sent = 0
   for (const p of plan) {
-    if (job.kind === 'booking' && job.sent.includes(`${p.kind}:${p.to}`)) continue
+    if (job.kind !== 'test' && job.sent.includes(`${p.kind}:${p.to}`)) continue
     try {
       await send(job.settings, { ...p.mail, to: p.to })
       await pool.query('select public.worker_email_log($1, $2, $3, $4, $5, null)', [outboxId, p.kind, p.to, p.mail.subject, 'sent'])

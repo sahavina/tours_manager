@@ -12,7 +12,7 @@ type EmailSettings = {
   from_name?: string; from_email?: string; staff_to?: string[]; notify_staff?: boolean; notify_customer?: boolean
 }
 
-const KIND: Record<string, string> = { staff_new_booking: 'Báo đội ngũ', customer_ack: 'Xác nhận cho khách', test: 'Email thử' }
+const KIND: Record<string, string> = { staff_new_booking: 'Báo đội ngũ', customer_ack: 'Khách: đã nhận yêu cầu', customer_confirmed: 'Khách: đã xác nhận', customer_cancelled: 'Khách: đã hủy', test: 'Email thử' }
 const email = { type: 'email' as const, message: 'Email chưa đúng' }
 
 export function EmailTab() {
@@ -91,7 +91,7 @@ export function EmailTab() {
               <Select mode="tags" open={false} tokenSeparators={[',', ' ']} placeholder="ops@example.com" />
             </Form.Item>
           </Col>
-          <Col xs={24}><Form.Item name="notify_customer" label="Gửi khách email xác nhận đã nhận yêu cầu (tiếng Anh, kèm mã booking)" valuePropName="checked"><Switch /></Form.Item></Col>
+          <Col xs={24}><Form.Item name="notify_customer" label="Gửi email cho khách (tiếng Anh): đã nhận yêu cầu, đã xác nhận, đã hủy hoặc không nhận được" valuePropName="checked"><Switch /></Form.Item></Col>
         </ARow>
         <Button type="primary" htmlType="submit" loading={save.isPending} disabled={!editable}>Lưu</Button>
       </Form>

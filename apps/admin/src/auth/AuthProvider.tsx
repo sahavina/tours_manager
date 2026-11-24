@@ -27,6 +27,18 @@ type AuthValue = {
   can: (permission: string) => boolean
   switchOrg: (id: string) => void
   signOut: () => Promise<void>
+  /** Vừa mở link đặt mật khẩu (tài khoản mới hoặc đặt lại): phải đặt mật khẩu trước khi vào trang. */
+  recovery: boolean
+  clearRecovery: () => void
+}
+
+// Link đặt mật khẩu chuyển về trang với #...type=recovery; supabase-js đọc phiên từ đó.
+const openedFromRecoveryLink = () => {
+  try {
+    return /[#&?]type=(recovery|invite)\b/.test(window.location.hash + window.location.search)
+  } catch {
+    return false
+  }
 }
 
 const Ctx = createContext<AuthValue | null>(null)
@@ -34,6 +46,7 @@ const Ctx = createContext<AuthValue | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [ready, setReady] = useState(false)
+  const [recovery, setRecovery] = useState(openedFromRecoveryLink)
   const [selected, setSelected] = useState<string | null>(() => readLocal<string | null>('tourhub.org', null))
   const qc = useQueryClient()
 
@@ -42,7 +55,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session)
       setReady(true)
     })
-    const { data } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === 'PASSWORD_RECOVERY') setRecovery(true)
       setSession(s)
       if (!s) qc.clear()
     })
@@ -75,6 +89,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut()
   }, [])
 
+  const clearRecovery = useCallback(() => {
+    setRecovery(false)
+    try {
+      window.history.replaceState(null, '', window.location.pathname)
+    } catch {
+      /* bỏ qua */
+    }
+  }, [])
+
   const value = useMemo<AuthValue>(
     () => ({
       session,
@@ -87,8 +110,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       can,
       switchOrg,
       signOut,
+      recovery,
+      clearRecovery,
     }),
-    [session, ready, orgs, org, orgsQuery.isLoading, orgsQuery.isError, can, switchOrg, signOut],
+    [session, ready, orgs, org, orgsQuery.isLoading, orgsQuery.isError, can, switchOrg, signOut, recovery, clearRecovery],
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

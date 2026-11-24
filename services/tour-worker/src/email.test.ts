@@ -65,3 +65,33 @@ describe('gửi theo outbox', () => {
     expect(await sendOutboxEmails(pool, () => {}, 9, async () => { throw new Error('không được gọi') })).toBe(0)
   })
 })
+
+describe('email xác nhận / hủy', () => {
+  const base = { ...job, kind: 'status' as const, contact: { whatsapp: '+84 900', email: 'hello@example.com' } }
+
+  it('xác nhận: tiêu đề, tổng tiền, liên hệ, trả lời về email liên hệ', async () => {
+    const sent: Mail[] = []
+    const { pool, logs } = fakePool({ ...base, status_to: 'confirmed', status_from: 'pending' })
+    expect(await sendOutboxEmails(pool, () => {}, 10, async (_s, m) => { sent.push(m) })).toBe(1)
+    expect(sent[0]).toMatchObject({ to: 'jane@example.com', subject: 'Your booking SH-000001 is confirmed – Hanoi Jeep', replyTo: 'hello@example.com' })
+    expect(sent[0]!.text).toContain('Total: 120 USD')
+    expect(sent[0]!.text).toContain('WhatsApp: +84 900')
+    expect(logs[0]![1]).toBe('customer_confirmed')
+  })
+
+  it('từ chối yêu cầu đang chờ và hủy booking đã xác nhận có lời khác nhau', async () => {
+    const sent: Mail[] = []
+    for (const from of ['pending', 'confirmed']) {
+      const { pool } = fakePool({ ...base, status_to: 'cancelled', status_from: from })
+      await sendOutboxEmails(pool, () => {}, 11, async (_s, m) => { sent.push(m) })
+    }
+    expect(sent[0]!.subject).toContain('could not confirm')
+    expect(sent[1]!.subject).toContain('has been cancelled')
+    expect(sent[0]!.text).not.toContain('Total:')
+  })
+
+  it('không bật gửi khách thì không gửi', async () => {
+    const { pool } = fakePool({ ...base, settings: { ...base.settings, notify_customer: false }, status_to: 'confirmed', status_from: 'pending' })
+    expect(await sendOutboxEmails(pool, () => {}, 12, async () => { throw new Error('không được gọi') })).toBe(0)
+  })
+})

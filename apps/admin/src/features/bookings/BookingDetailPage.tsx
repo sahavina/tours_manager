@@ -96,7 +96,7 @@ export function BookingDetailPage() {
       title: decision === 'confirm' ? `Xác nhận yêu cầu ${b.code}?` : `Từ chối yêu cầu ${b.code}?`,
       content: (
         <>
-          <p>{decision === 'confirm' ? 'Booking chuyển sang Đã xác nhận, chỗ vẫn được giữ.' : 'Booking bị hủy và trả chỗ.'} Hệ thống chưa gửi email: hãy tự báo cho khách.</p>
+          <p>{decision === 'confirm' ? 'Booking chuyển sang Đã xác nhận, chỗ vẫn được giữ.' : 'Booking bị hủy và trả chỗ.'} Nếu đã bật email cho khách (Website → Email thông báo), khách tự nhận email báo kết quả; nếu chưa, hãy tự báo cho khách.</p>
           <Input.TextArea placeholder={decision === 'confirm' ? 'Ghi chú (không bắt buộc)' : 'Lý do (không bắt buộc)'} onChange={(e) => (note = e.target.value)} />
         </>
       ),

@@ -2,10 +2,11 @@
 // (giống has_org_permission ở database). Màn hình cho bấm từng quyền; mã tự tính ra cấp thêm / thu hồi.
 import { CheckOutlined, SearchOutlined, UndoOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Alert, App, Avatar, Button, Checkbox, Drawer, Form, Input, Select, Space, Switch, Table, Tag, Tooltip, Typography } from 'antd'
+import { Alert, App, Avatar, Button, Checkbox, Drawer, Form, Input, Modal, Select, Space, Switch, Table, Tag, Tooltip, Typography } from 'antd'
 import { useMemo, useState } from 'react'
 import { useAuth } from '../../auth/AuthProvider'
 import { ErrorState, NoData } from '../../components/common'
+import { accountsApi } from '../../lib/accounts'
 import { rpc, rpcOk, supabase, unwrap, type Row } from '../../lib/supabase'
 
 type Perm = { key: string; description: string }
@@ -81,9 +82,25 @@ export function MembersTab() {
   const [roleFilter, setRoleFilter] = useState<string | undefined>()
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'locked'>('all')
   const members = useQuery({ queryKey: ['members', orgId], enabled: can('member.manage'), queryFn: () => rpc<Row[]>('member_list', { p_org: orgId }) })
+  // Link đặt mật khẩu vừa tạo (tài khoản mới hoặc đặt lại), hiện một lần để người quản lý gửi cho thành viên.
+  const [linkFor, setLinkFor] = useState<{ email: string; link: string; created: boolean } | null>(null)
   const save = useMutation({
-    mutationFn: (v: Row) => rpcOk('member_upsert', { p_org: orgId, p_email: v.email, p_role: v.role_key, p_granted: v.granted, p_revoked: v.revoked, p_active: v.is_active }),
-    onSuccess: () => { message.success('Đã lưu phân quyền'); setEdit(null); qc.invalidateQueries({ queryKey: ['members'] }); qc.invalidateQueries({ queryKey: ['org-context'] }) },
+    mutationFn: async (v: Row) => {
+      // Thêm thành viên mới: chưa có tài khoản thì tạo trước (qua API của Worker, cần khóa service).
+      const acc = edit && !edit.id ? await accountsApi(orgId, String(v.email), 'ensure') : null
+      await rpcOk('member_upsert', { p_org: orgId, p_email: v.email, p_role: v.role_key, p_granted: v.granted, p_revoked: v.revoked, p_active: v.is_active })
+      return { email: String(v.email), acc }
+    },
+    onSuccess: ({ email, acc }) => {
+      message.success(acc?.created ? 'Đã tạo tài khoản và gán vào doanh nghiệp' : 'Đã lưu phân quyền')
+      if (acc?.link) setLinkFor({ email, link: acc.link, created: true })
+      setEdit(null); qc.invalidateQueries({ queryKey: ['members'] }); qc.invalidateQueries({ queryKey: ['org-context'] })
+    },
+    onError: (e: Error) => message.error(e.message),
+  })
+  const reset = useMutation({
+    mutationFn: async (email: string) => ({ email, acc: await accountsApi(orgId, email, 'reset') }),
+    onSuccess: ({ email, acc }) => acc.link && setLinkFor({ email, link: acc.link, created: false }),
     onError: (e: Error) => message.error(e.message),
   })
 
@@ -108,7 +125,7 @@ export function MembersTab() {
 
   return (
     <>
-      <Alert type="info" showIcon style={{ marginBottom: 12 }} message="Tạo tài khoản đăng nhập mới bằng lệnh quản trị (scripts/create-user.mjs) vì việc đó cần khóa service role, không đưa ra trình duyệt. Ở đây gán tài khoản đã có vào doanh nghiệp và phân quyền." />
+      <Alert type="info" showIcon style={{ marginBottom: 12 }} message="Thêm thành viên bằng email: chưa có tài khoản thì hệ thống tạo mới và cho bạn một link đặt mật khẩu để gửi cho người đó. Quên mật khẩu thì bấm “Link đặt mật khẩu” ở dòng của họ." />
 
       <div className="role-chips">
         {cat.roles.map((r) => (
@@ -161,9 +178,34 @@ export function MembersTab() {
               },
             },
             { title: 'Trạng thái', render: (_, m) => (m.is_active ? <Tag color="green">Hoạt động</Tag> : <Tag>Đã khóa</Tag>) },
-            { title: '', align: 'right', render: (_, m) => <Button size="small" onClick={(e) => { e.stopPropagation(); setEdit(m) }}>Phân quyền</Button> },
+            { title: '', align: 'right', render: (_, m) => (
+              <Space size={4}>
+                {m.user_id !== session?.user.id && (
+                  <Button size="small" loading={reset.isPending && reset.variables === m.email}
+                    onClick={(e) => { e.stopPropagation(); reset.mutate(String(m.email)) }}>Link đặt mật khẩu</Button>
+                )}
+                <Button size="small" onClick={(e) => { e.stopPropagation(); setEdit(m) }}>Phân quyền</Button>
+              </Space>
+            ) },
           ]} />
       )}
+
+      <Modal open={Boolean(linkFor)} onCancel={() => setLinkFor(null)} onOk={() => setLinkFor(null)} okText="Xong" cancelButtonProps={{ style: { display: 'none' } }}
+        title={linkFor?.created ? 'Đã tạo tài khoản' : 'Link đặt lại mật khẩu'}>
+        {linkFor && (
+          <>
+            <Typography.Paragraph>
+              Gửi link này cho <b>{linkFor.email}</b> qua kênh riêng (Zalo, email…). Mở link, người đó tự đặt mật khẩu rồi đăng nhập;
+              không ai khác biết mật khẩu.
+            </Typography.Paragraph>
+            <Typography.Paragraph copyable={{ text: linkFor.link, tooltips: ['Sao chép link', 'Đã sao chép'] }}
+              style={{ background: '#f5f7f8', padding: 10, borderRadius: 8, wordBreak: 'break-all', fontSize: 12 }}>
+              {linkFor.link}
+            </Typography.Paragraph>
+            <Typography.Text type="secondary">Link chỉ dùng được một lần và hết hạn sau một thời gian; hết hạn thì bấm “Link đặt mật khẩu” để lấy link mới.</Typography.Text>
+          </>
+        )}
+      </Modal>
 
       {edit && (
         <MemberDrawer member={edit} cat={cat} saving={save.isPending} isSelf={edit.user_id === session?.user.id}

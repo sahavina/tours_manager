@@ -89,7 +89,7 @@ export async function drainOutbox(
     try {
       await pool.query('select public.worker_notify($1)', [e.id])
       // Email yêu cầu đặt từ website và email thử; lỗi gửi được ghi vào email_log, không làm hỏng outbox.
-      if (e.topic === 'booking.created' || e.topic === 'email.test') await sendOutboxEmails(pool, log, Number(e.id), mail)
+      if (e.topic === 'booking.created' || e.topic === 'email.test' || e.topic === 'website.status') await sendOutboxEmails(pool, log, Number(e.id), mail)
       if (e.topic === 'availability.changed') {
         const pushed = await pushGygAvailability(pool, log, e, gyg)
         await pool.query(

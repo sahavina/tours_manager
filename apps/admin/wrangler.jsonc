@@ -1,6 +1,21 @@
 {
-  // Giống apps/admin của keodansaha: SPA thuần, Worker chỉ phục vụ file tĩnh.
+  // Trang quản trị: SPA phục vụ file tĩnh, cộng API POST /api/accounts (worker/index.ts) để tạo tài khoản
+  // và link đặt mật khẩu (cần khóa service, không đưa ra trình duyệt).
+  // Deploy: npx wrangler deploy --name saha-tour-hub. Bí mật đặt bằng `wrangler secret put --name saha-tour-hub`:
+  // SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY (không ghi vào file này).
   "name": "saha-tour-hub-admin",
+  "main": "worker/index.ts",
   "compatibility_date": "2026-10-01",
-  "assets": { "directory": "./dist", "not_found_handling": "single-page-application" }
+  "observability": { "enabled": true },
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "vars": {
+    "SUPABASE_URL": "https://api-tourhub.217-216-39-53.sslip.io",
+    // Trang quản trị: link đặt mật khẩu chuyển về đây (phải nằm trong GOTRUE_URI_ALLOW_LIST).
+    "SITE_URL": "https://saha-tour-hub.chungnd-dsc.workers.dev"
+  }
 }

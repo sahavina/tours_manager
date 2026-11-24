@@ -7,6 +7,7 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from '../auth/AuthProvider'
 import { LoginPage } from '../auth/LoginPage'
+import { SetPasswordPage } from '../auth/SetPasswordPage'
 import { Loading, Need } from '../components/common'
 import { AdminLayout } from './AdminLayout'
 import { lastArea } from './area'
@@ -55,12 +56,13 @@ function Home() {
 }
 
 function Gate() {
-  const { session, ready, orgs, orgsLoading, orgsError, can, signOut } = useAuth()
+  const { session, ready, orgs, orgsLoading, orgsError, can, signOut, recovery, clearRecovery } = useAuth()
 
   if (!ready || (session && orgsLoading)) {
     return <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}><Spin size="large" /></div>
   }
   if (!session) return <LoginPage />
+  if (recovery) return <SetPasswordPage email={session.user.email} onDone={clearRecovery} />
   if (orgsError || orgs.length === 0) {
     return (
       <Result status={orgsError ? 'error' : 'warning'}
